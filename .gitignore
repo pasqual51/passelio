@@ -1,0 +1,30 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+secrets/
+# User content and runtime state
+uploads/
+storage/
+data/
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.log
+# Dependencies and builds
+node_modules/
+dist/
+coverage/
+.venv/
+__pycache__/
+.pytest_cache/
+# Local editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
