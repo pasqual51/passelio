@@ -1,0 +1,210 @@
+[
+  {
+    "name": "Erugo",
+    "colors": {
+      "primary": "#8ad0f2",
+      "accent": "#397390",
+      "background": "#ebebeb",
+      "surface": "#ebebeb",
+      "text": "#222222",
+      "muted": "#7e7e7e",
+      "subtle": "#e1e1e1",
+      "border": "#dedede",
+      "primary_text": "#252525"
+    }
+  },
+  {
+    "name": "Heather",
+    "colors": {
+      "primary": "#58508d",
+      "accent": "#58508d",
+      "background": "#fafaff",
+      "surface": "#fafaff",
+      "text": "#2a283e",
+      "muted": "#7873a0",
+      "subtle": "#f0f0f5",
+      "border": "#c8c3e6",
+      "primary_text": "#ffffff"
+    }
+  },
+  {
+    "name": "Sakura",
+    "colors": {
+      "primary": "#db7fa3",
+      "accent": "#db7fa3",
+      "background": "#fcf0f5",
+      "surface": "#fcf0f5",
+      "text": "#533842",
+      "muted": "#9e7081",
+      "subtle": "#f8ebf0",
+      "border": "#f1bbcc",
+      "primary_text": "#ffffff"
+    }
+  },
+  {
+    "name": "Aqua",
+    "colors": {
+      "primary": "#5682bd",
+      "accent": "#5682bd",
+      "background": "#eef5fa",
+      "surface": "#eef5fa",
+      "text": "#2d445e",
+      "muted": "#768ca0",
+      "subtle": "#e1eef7",
+      "border": "#c2dbee",
+      "primary_text": "#ffffff"
+    }
+  },
+  {
+    "name": "Colbolt",
+    "colors": {
+      "primary": "#2d78e6",
+      "accent": "#409cff",
+      "background": "#18181c",
+      "surface": "#18181c",
+      "text": "#dcdcdc",
+      "muted": "#aaaaaa",
+      "subtle": "#222227",
+      "border": "#3c3c46",
+      "primary_text": "#ffffff"
+    }
+  },
+  {
+    "name": "Dracula",
+    "colors": {
+      "primary": "#bd93f9",
+      "accent": "#bd93f9",
+      "background": "#282a36",
+      "surface": "#282a36",
+      "text": "#f8f8f2",
+      "muted": "#6272a4",
+      "subtle": "#44475a",
+      "border": "#6272a4",
+      "primary_text": "#282a36"
+    }
+  },
+  {
+    "name": "Github Light",
+    "colors": {
+      "primary": "#1f883d",
+      "accent": "#0969da",
+      "background": "#ffffff",
+      "surface": "#ffffff",
+      "text": "#24292f",
+      "muted": "#57606a",
+      "subtle": "#f6f8fa",
+      "border": "#d0d7de",
+      "primary_text": "#ffffff"
+    }
+  },
+  {
+    "name": "Tropical Sunset",
+    "colors": {
+      "primary": "#faa6c0",
+      "accent": "#465f3c",
+      "background": "#faebf5",
+      "surface": "#faebf5",
+      "text": "#30362b",
+      "muted": "#6e7d64",
+      "subtle": "#f2e0ee",
+      "border": "#ebd7eb",
+      "primary_text": "#30362b"
+    }
+  },
+  {
+    "name": "Parma Violet",
+    "colors": {
+      "primary": "#6c63ff",
+      "accent": "#50d2c2",
+      "background": "#f0f2ff",
+      "surface": "#f0f2ff",
+      "text": "#3e4163",
+      "muted": "#787da0",
+      "subtle": "#e6ebfa",
+      "border": "#c3c8e6",
+      "primary_text": "#ffffff",
+      "primary_end": "#8a55ff",
+      "background_end": "#e1e8f7"
+    }
+  },
+  {
+    "name": "CyberNeon Flux",
+    "colors": {
+      "primary": "#ff53c6",
+      "accent": "#00ffcd",
+      "background": "#141423",
+      "surface": "#141423",
+      "text": "#dcdcff",
+      "muted": "#8c8cb4",
+      "subtle": "#28283c",
+      "border": "#00ffcd",
+      "primary_text": "#191923",
+      "primary_end": "#c600f5",
+      "background_end": "#232337"
+    }
+  },
+  {
+    "name": "Amethyst",
+    "colors": {
+      "primary": "#8957e5",
+      "accent": "#bb86fc",
+      "background": "#18181c",
+      "surface": "#18181c",
+      "text": "#dcdcdc",
+      "muted": "#aaaaaa",
+      "subtle": "#222227",
+      "border": "#3c3c46",
+      "primary_text": "#ffffff",
+      "primary_end": "#9c71e8",
+      "background_end": "#1c1c22"
+    }
+  },
+  {
+    "name": "Galaxy",
+    "colors": {
+      "primary": "#6c63ff",
+      "accent": "#50d2c2",
+      "background": "#1e202d",
+      "surface": "#1e202d",
+      "text": "#dcdcf0",
+      "muted": "#aaaabe",
+      "subtle": "#282a37",
+      "border": "#464655",
+      "primary_text": "#ffffff",
+      "primary_end": "#8a55ff",
+      "background_end": "#191b28"
+    }
+  },
+  {
+    "name": "Cave Dweller",
+    "colors": {
+      "primary": "#27ae60",
+      "accent": "#2ecc71",
+      "background": "#08080a",
+      "surface": "#08080a",
+      "text": "#dcdcf0",
+      "muted": "#aaaabe",
+      "subtle": "#0f0f12",
+      "border": "#282832",
+      "primary_text": "#ffffff",
+      "primary_end": "#2ecc71",
+      "background_end": "#000000"
+    }
+  },
+  {
+    "name": "Erugo 2026",
+    "colors": {
+      "primary": "#5b4b9e",
+      "accent": "#c850a0",
+      "background": "#f8f2ff",
+      "surface": "#f8f2ff",
+      "text": "#3e4155",
+      "muted": "#82739b",
+      "subtle": "#f2ebfc",
+      "border": "#c8b4dc",
+      "primary_text": "#ffffff",
+      "primary_end": "#c850a0",
+      "background_end": "#eee6fa"
+    }
+  }
+]

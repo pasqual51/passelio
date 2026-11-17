@@ -59,6 +59,13 @@ Sauvegarde de la base télécharge une copie SQLite cohérente de 32 Mio maximum
 
 Importer des logos, favicons et fonds PNG, JPEG ou WebP (5 Mio, 20 mégapixels maximum). Ils sont redimensionnés, réencodés en PNG et débarrassés de leurs métadonnées. Les SVG importés, vidéos et animations ne sont pas acceptés. Utiliser un logo/favicon depuis sa carte, ou revenir aux éléments d'origine. Sélectionner jusqu'à huit fonds et une durée de rotation ; les animations réduites désactivent la rotation.
 
-Midnight, Ocean et Amber sont proposés. Les thèmes personnalisés utilisent uniquement trois couleurs hexadécimales. Le contraste des couleurs principales est contrôlé. Un fichier JSON importé remplit l'éditeur ; cliquer ensuite sur Appliquer le thème pour l'activer. Aucun CSS ni script importé n'est exécuté.
+Dix-sept thèmes sont proposés : les trois thèmes Passelio et les quatorze palettes Erugo adaptées avec attribution MIT. Les thèmes personnalisés utilisent uniquement des couleurs hexadécimales contrôlées. Le contraste des couleurs principales est contrôlé. Un fichier JSON importé remplit l'éditeur ; cliquer ensuite sur Appliquer le thème pour l'activer. Aucun CSS ni script importé n'est exécuté.
 
 Les éléments visuels sont publics lorsqu'on connaît leur URL et ne doivent contenir aucune donnée confidentielle. Ils ont un budget séparé de 12 fichiers et 32 Mio, sur le même volume physique. La suppression d'une image est définitive et réinitialise ses sélections actives. Sauvegarder tout le volume pour conserver les images ; l'export SQLite seul ne les inclut pas.
+
+
+## Palettes Erugo adaptées
+
+Les choix intégrés sont Erugo, Erugo 2026, Heather, Sakura, Aqua, Colbolt, Dracula, Github Light, Tropical Sunset, Parma Violet, CyberNeon Flux, Amethyst, Galaxy et Cave Dweller. Les trois thèmes Passelio restent disponibles.
+
+Les thèmes sombres règlent aussi le texte, les champs, les cartes et les tableaux. Les dégradés sont générés à partir de couleurs validées. Certaines teintes sont ajustées pour le contraste ; il s'agit d'une adaptation à Passelio, pas d'une reproduction pixel à pixel. L'import/export conserve les rôles de couleur étendus. Voir third_party/README.md et sa licence MIT.

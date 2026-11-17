@@ -42,3 +42,9 @@ The full pre-fix suite had 25 passing cases and the snapshot failure; all four f
 Four additional automated cases cover raster upload/re-encoding, public image delivery, activation, persistence after app recreation, deletion/reference reset, role/CSRF checks, SVG/HTML/oversized input rejection, typed asset references, background selection, separate asset accounting, strict data-only themes and contrast rejection. These four tests and the expanded five-module translation-key/static-label check pass locally. CI runs the full 30-case suite and builds the updated Docker image with pinned Pillow.
 
 Browser checks cover the French and English visual-identity controls and actual application of the Ocean preset. The original Midnight preset was restored afterward. No corporate logo or screenshot was imported; tests use generated raster data. Videos/animations, uploaded SVG and arbitrary CSS themes are not supported.
+
+## Erugo palette choices (alpha.6)
+
+Fourteen upstream bundled palette references are adapted with MIT attribution alongside the three existing presets. Two added tests assert the full choice list, validate every preset, check dark/gradient palette export/import and reject URL-valued gradient endpoints. The six branding cases and translation/static-label check pass locally. CI reruns all 32 tests and Docker construction.
+
+Browser checks exercised Dracula dark-mode inputs/buttons/text and the Erugo 2026 gradient. The previously selected Amber preset was restored. Existing user-uploaded preview assets were left untouched and are not committed. Screenshot proof is kept only in ignored local preview files. Source palette data and the upstream license are included under third_party.

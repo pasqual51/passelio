@@ -90,3 +90,12 @@ The image-processing dependency Pillow is pinned. Custom branding assets are PNG
 branding_config and branding_assets tables are created automatically. Deleting an asset removes its file and clears references atomically at the database level. Include images in a full-volume backup; SQLite export includes metadata/settings but not the image files.
 
 Theme JSON contains only name and three hex colors (primary, accent, background). Unknown fields, CSS, URLs and executable templates are rejected. Main foreground/button contrast is checked at 4.5:1; this is not a full accessibility certification of every custom page or image. Presets are Midnight, Ocean and Amber. Rotation supports off/1/3/5/10/30 minutes and respects reduced-motion preferences. No external font/image service is used.
+
+
+## Extended theme palettes (alpha.6)
+
+Seventeen presets are now available: the three original Passelio palettes plus fourteen Erugo 0.2.15 palette adaptations, with upstream MIT license/attribution shipped in third_party. No upstream arbitrary CSS is interpreted. The visual reference JSON contains color data, not company-specific settings or user assets.
+
+Theme JSON still requires name and colors with primary, accent and background. Optional supported hex-only roles are surface, text, muted, subtle, border, primary_text, primary_end and background_end. Other fields are rejected. Three-color themes remain compatible with alpha.5. Extended palettes validate text, muted and accent contrast across page/card/subtle surfaces, and primary text against gradient endpoints. The source adapter adjusts colors when required. This is not a certification of arbitrary artwork or every visual state.
+
+The API exposes original color roles and a resolved palette for rendering. Imported/exported extended themes retain all supported roles, even though the basic editor exposes only the three main colors. To edit/remove advanced roles, edit the exported JSON; CSS and URLs remain forbidden. The application creates gradients only from validated color endpoints and adapts cards/inputs/tables/header to light or dark mode. Local theme tests restore the previous selection afterward.

@@ -10,6 +10,7 @@ from pathlib import Path
 
 from flask import jsonify,request,send_file
 from PIL import Image,ImageOps,UnidentifiedImageError
+from themes import OPTIONAL_COLORS,palette,reference_presets,validate_palette
 
 
 PRESETS={
@@ -17,6 +18,7 @@ PRESETS={
  'ocean':dict(name='Ocean',colors=dict(primary='#153b66',accent='#176b82',background='#f1f7fb')),
  'amber':dict(name='Amber',colors=dict(primary='#442c26',accent='#9a4e12',background='#fbf7f0'))
 }
+PRESETS.update(reference_presets())
 
 
 def contrast(a,b):
@@ -31,8 +33,10 @@ def validate_theme(theme):
     if not isinstance(theme,dict) or set(theme)!={'name','colors'}:raise ValueError('invalid_theme')
     if not isinstance(theme['name'],str) or not 1<=len(theme['name'])<=60 or any(ord(x)<32 for x in theme['name']):raise ValueError('invalid_theme')
     colors=theme['colors']
-    if not isinstance(colors,dict) or set(colors)!={'primary','accent','background'} or any(not isinstance(c,str) or not re.fullmatch(r'#[0-9a-fA-F]{6}',c) for c in colors.values()):raise ValueError('invalid_theme')
-    if min(contrast(colors['primary'],'#ffffff'),contrast(colors['accent'],'#ffffff'),contrast(colors['background'],'#18243a'),contrast(colors['primary'],colors['background']),contrast(colors['accent'],colors['background']))<4.5:raise ValueError('theme_contrast')
+    if not isinstance(colors,dict) or not {'primary','accent','background'}<=set(colors) or set(colors)-({'primary','accent','background'}|OPTIONAL_COLORS) or any(not isinstance(c,str) or not re.fullmatch(r'#[0-9a-fA-F]{6}',c) for c in colors.values()):raise ValueError('invalid_theme')
+    if set(colors)=={'primary','accent','background'}:
+        if min(contrast(colors['primary'],'#ffffff'),contrast(colors['accent'],'#ffffff'),contrast(colors['background'],'#18243a'),contrast(colors['primary'],colors['background']),contrast(colors['accent'],colors['background']))<4.5:raise ValueError('theme_contrast')
+    elif not validate_palette(colors):raise ValueError('theme_contrast')
     return dict(name=theme['name'],colors={k:v.lower() for k,v in colors.items()})
 
 
@@ -61,6 +65,7 @@ def init_branding(app,db,root,protected,fail,audit):
     def public_branding():
         value=config()
         value['colors']=(value['custom_theme'] if value['theme']=='custom' else PRESETS[value['theme']])['colors']
+        value['palette']=palette(value['colors'])
         return jsonify(value)
 
     @app.get('/api/admin/branding')

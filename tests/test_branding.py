@@ -63,3 +63,28 @@ def test_background_selection_and_separate_asset_budget(app):
     assert c.put('/api/admin/branding',headers=h,json={'favicon':aid}).status_code==400
     assert c.delete('/api/admin/branding/assets/'+aid,headers=h).status_code==200
     assert not c.get('/api/branding').json['use_backgrounds']
+
+
+def test_all_erugo_theme_choices_are_present_and_validated(app):
+    from branding import validate_theme
+    expected={'Erugo','Erugo 2026','Heather','Sakura','Aqua','Colbolt','Dracula','Github Light','Tropical Sunset','Parma Violet','CyberNeon Flux','Amethyst','Galaxy','Cave Dweller'}
+    assert expected <= {theme['name'] for theme in PRESETS.values()}
+    assert len(PRESETS)==17
+    for theme in PRESETS.values():validate_theme(theme)
+    c,h=login(app)
+    assert len(c.get('/api/admin/branding').json['presets'])==17
+
+
+def test_dark_gradient_presets_roundtrip_without_css(app):
+    from themes import contrast
+    c,h=login(app)
+    key=next(k for k,v in PRESETS.items() if v['name']=='Galaxy')
+    assert c.put('/api/admin/branding',headers=h,json={'theme':key}).status_code==200
+    public=c.get('/api/branding').json
+    assert contrast(public['palette']['text'],public['palette']['background'])>=4.5
+    assert 'primary_end' in public['palette'] and 'background_end' in public['palette']
+    exported=PRESETS[key]
+    assert c.put('/api/admin/branding',headers=h,json={'theme':'custom','custom_theme':exported}).status_code==200
+    assert c.get('/api/branding').json['colors']==exported['colors']
+    bad=dict(exported['colors']);bad['primary_end']='url(https://example.com/tracker)'
+    assert c.put('/api/admin/branding',headers=h,json={'custom_theme':{'name':'bad','colors':bad}}).status_code==400
