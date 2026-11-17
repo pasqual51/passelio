@@ -19,7 +19,7 @@ Pour HTTPS, le reverse proxy et les sauvegardes, consulter [DEPLOYMENT.md](DEPLO
 
 ## Limites de cette version
 
-Cette alpha n'est pas prête pour la production. Il n'y a pas encore de notifications SMTP, CC/CCI, reprise après interruption, dossiers/ZIP, demandes de dépôt, quotas par utilisateur, S3, MFA ou antivirus. La parité complète avec Erugo n'est pas atteinte.
+Cette alpha n'est pas prête pour la production. Il n'y a pas encore de reprise après interruption, dossiers/ZIP, demandes de dépôt, quotas par utilisateur, S3, MFA ou antivirus. La parité complète avec Erugo n'est pas atteinte.
 
 La limite de téléchargements compte chaque requête de fichier, pas les personnes ni les partages complets. Une coupure pendant l'envoi impose de recommencer. Un arrêt brutal du serveur peut laisser une réservation à examiner manuellement. Le quota ne remplace pas la surveillance de l'espace disque réel.
 
@@ -32,4 +32,13 @@ Ouvrir /admin avec un compte administrateur. Six rubriques sont disponibles : vu
 
 Les changements de rôle ou d'état ferment les sessions du compte concerné. Il n'est pas possible de retirer son propre rôle administrateur ni de désactiver son propre compte. Désactiver un utilisateur ne révoque pas automatiquement ses anciens liens.
 
-Les quotas sont exprimés en Gio dans l'interface et persistent dans la base ; ils ne changent pas la taille du disque. L'administration affiche au maximum 200 utilisateurs/partages et les 200 derniers événements. Les contrôles SMTP, personnalisation et antivirus restent à développer.
+Les quotas sont exprimés en Gio dans l'interface et persistent dans la base ; ils ne changent pas la taille du disque. L'administration affiche au maximum 200 utilisateurs/partages et les 200 derniers événements. Les notifications SMTP et CC/CCI sont disponibles dans Messagerie. La personnalisation et les contrôles antivirus restent à développer.
+
+
+## Notifications e-mail
+
+Dans Administration → Messagerie, enregistrer le serveur SMTP, le port, STARTTLS ou SSL/TLS, l'identifiant et le mot de passe si nécessaire, puis l'adresse de l'expéditeur. Le mot de passe enregistré n'est jamais réaffiché. Une valeur vide le conserve ; une case permet de le retirer explicitement. Activer les notifications puis utiliser le formulaire de test : il envoie uniquement à l'adresse indiquée, sans CC/CCI.
+
+Après un partage, ou depuis son bouton de notification dans l'historique, saisir jusqu'à 20 destinataires et choisir la langue du message. Un mail séparé est envoyé à chacun, avec les CC/CCI définies par l'administrateur. Les CCI sont absentes des en-têtes du message. Aucun mot de passe de partage n'est envoyé.
+
+L'historique distingue attente, en cours, accepté par SMTP et échec. Une acceptation SMTP ne garantit pas la présence dans la boîte du destinataire. Une relance manuelle peut créer un doublon, notamment après une acceptation partielle ou une interruption.

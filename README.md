@@ -4,7 +4,7 @@
 
 An independent, Docker-first file-sharing project with a French and English interface.
 
-**Status: private alpha, 0.1.0-alpha.2. Not production-ready.** This is the first functional milestone, not full Erugo feature parity. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
+**Status: private alpha, 0.1.0-alpha.3. Not production-ready.** This is the first functional milestone, not full Erugo feature parity. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
 
 ## Implemented
 
@@ -15,11 +15,12 @@ An independent, Docker-first file-sharing project with a French and English inte
 - Expiring links (1–30 days), optional share password, revocation and download-request limits.
 - Persistent SQLite database and file storage; global and per-share quotas reserved transactionally.
 - Separate cleanup worker for expired/revoked files, every five minutes.
+- SMTP settings, verified STARTTLS/SSL, explicit test email, editable French/English templates, per-recipient notifications with automatic CC/BCC, persistent outbox and safe delivery diagnostics.
 - Non-root Docker container, CSRF protection, server-side sessions and login throttling.
 
 ## Not implemented yet
 
-Resumable uploads, folders/ZIP downloads, SMTP/CC/BCC notifications, upload requests, per-user quotas, S3, MFA/SSO and antivirus. There is no end-to-end encryption or completed security audit. See [the roadmap](docs/PROJECT.md).
+Resumable uploads, folders/ZIP downloads, upload requests, per-user quotas, S3, MFA/SSO and antivirus. There is no end-to-end encryption or completed security audit. See [the roadmap](docs/PROJECT.md).
 
 ## Try locally with Docker
 

@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 from flask import Flask, g, jsonify, request, send_file
 from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash, generate_password_hash
+from mailer import init_mail,validate_settings,address,addresses
 
 
 def create_app(config=None):
@@ -146,6 +147,8 @@ def create_app(config=None):
 
     app.cleanup = cleanup
     app.db = db
+    app.config.setdefault('ALLOW_INSECURE_SMTP',os.getenv('ALLOW_INSECURE_SMTP','false').lower()=='true')
+    init_mail(app,db,root)
 
     @app.cli.command("cleanup")
     def cleanup_command():
@@ -154,7 +157,7 @@ def create_app(config=None):
     @app.before_request
     def check_origin():
         if not (request.method == 'POST' and request.path.startswith('/api/shares/') and request.path.endswith('/files')):
-            request.max_content_length = 16384
+            request.max_content_length = 65536 if request.path=='/api/admin/mail/settings' else 16384
         else:
             request.max_content_length = current_limits()['SHARE_LIMIT']
         if request.method not in ("GET", "HEAD", "OPTIONS"):
@@ -185,7 +188,7 @@ def create_app(config=None):
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="0.1.0-alpha.2")
+        return jsonify(status="ok", version="0.1.0-alpha.3")
 
     @app.post("/api/login")
     def login():
@@ -414,7 +417,7 @@ def create_app(config=None):
                         files=c.execute('SELECT count(*) FROM files WHERE ready=1').fetchone()[0],
                         used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0],
                         cleanup_bytes=c.execute('SELECT coalesce(sum(size),0) FROM files JOIN shares ON shares.id=files.share_id WHERE revoked=1 OR expires<=?',(time.time(),)).fetchone()[0],
-                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.2')
+                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.3')
         return jsonify(result)
 
     @app.get('/api/admin/users')
@@ -481,5 +484,76 @@ def create_app(config=None):
             for k,v in b.items():c.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(k,v))
             audit(c,'settings.updated')
         return jsonify(ok=True)
+
+    @app.get('/api/admin/mail/settings')
+    @protected(admin=True)
+    def get_mail_settings():
+        return jsonify(**app.mail_settings(),has_password=app.smtp_password_present(),allow_plain=app.config['ALLOW_INSECURE_SMTP'])
+
+    @app.put('/api/admin/mail/settings')
+    @protected(admin=True)
+    def set_mail_settings():
+        try:
+            config,password,clear=validate_settings(request.get_json(silent=True),app.config['ALLOW_INSECURE_SMTP'])
+        except ValueError as e:return fail(str(e))
+        app.save_mail(config,password,clear)
+        with db(True) as c:audit(c,'mail.settings_updated')
+        return jsonify(ok=True)
+
+    @app.post('/api/admin/mail/test')
+    @protected(admin=True)
+    def test_mail():
+        body=request.get_json(silent=True) or {}
+        recipient=body.get('recipient','')
+        language=body.get('language','en')
+        if not address(recipient) or language not in ('fr','en'):return fail('invalid_input')
+        if not app.mail_settings()['enabled']:return fail('smtp_disabled',409)
+        if not rate_limit('smtp-test:'+str(g.user['id']),10):return fail('rate_limited',429)
+        with db(True) as c:
+            job=app.enqueue_mail(c,g.user['id'],recipient.lower(),language,kind='test')
+            audit(c,'mail.test_queued',str(job))
+        return jsonify(id=job,status='pending'),202
+
+    @app.post('/api/shares/<sid>/notify')
+    @protected()
+    def notify_share(sid):
+        body=request.get_json(silent=True) or {}
+        try:recipients=addresses(body.get('recipients',[]))
+        except ValueError:return fail('invalid_input')
+        language=body.get('language','en')
+        if not recipients or language not in ('fr','en'):return fail('invalid_input')
+        if not app.mail_settings()['enabled']:return fail('smtp_disabled',409)
+        if not rate_limit('notify:'+str(g.user['id']),20):return fail('rate_limited',429)
+        with db(True) as c:
+            share=c.execute('SELECT * FROM shares WHERE id=? AND owner=?',(sid,g.user['id'])).fetchone()
+            if not available(c,share):return fail('not_found',404)
+            if not c.execute('SELECT 1 FROM files WHERE share_id=? AND ready=1',(sid,)).fetchone():return fail('no_files',409)
+            jobs=[app.enqueue_mail(c,g.user['id'],r,language,sid) for r in recipients]
+            audit(c,'mail.share_queued',sid)
+        return jsonify(ids=jobs,status='pending'),202
+
+    @app.get('/api/mail/jobs')
+    @protected()
+    def mail_jobs():
+        with db() as c:
+            rows=c.execute('SELECT id,share_id,recipient,language,kind,status,attempts,created,updated,error FROM mail_jobs WHERE owner=? ORDER BY id DESC LIMIT 100',(g.user['id'],)).fetchall()
+        return jsonify(jobs=[dict(r) for r in rows])
+
+    @app.get('/api/admin/mail/jobs')
+    @protected(admin=True)
+    def admin_mail_jobs():
+        with db() as c:
+            rows=c.execute('SELECT m.id,m.share_id,m.recipient,m.language,m.kind,m.status,m.attempts,m.created,m.updated,m.error,u.email AS owner FROM mail_jobs m LEFT JOIN users u ON u.id=m.owner ORDER BY m.id DESC LIMIT 200').fetchall()
+        return jsonify(jobs=[dict(r) for r in rows])
+
+    @app.post('/api/admin/mail/jobs/<int:jid>/retry')
+    @protected(admin=True)
+    def retry_mail(jid):
+        if not app.mail_settings()['enabled']:return fail('smtp_disabled',409)
+        if not rate_limit('mail-retry:'+str(g.user['id']),20):return fail('rate_limited',429)
+        with db(True) as c:
+            if not c.execute("UPDATE mail_jobs SET status='pending',error=NULL,updated=? WHERE id=? AND status='failed'",(int(time.time()),jid)).rowcount:return fail('invalid_input',409)
+            audit(c,'mail.retried',str(jid))
+        return jsonify(ok=True),202
 
     return app

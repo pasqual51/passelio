@@ -4,6 +4,8 @@ Passelio is an early private alpha. It has not received an independent security 
 
 Current controls include scrypt password hashing, random share tokens, hashed server-side session tokens, same-site HTTP-only cookies, CSRF checks, security headers, download-as-attachment, opaque storage paths and transactional quota reservation. These are implementation controls, not a certification or guarantee.
 
+SMTP credentials are stored in a mode-600 application-owned file, not returned by the API or included in error messages. This is not encryption at rest: protect the data volume and backups. TLS server verification is mandatory; plain SMTP is restricted to an explicit development-only environment option. Automatic CC/BCC recipients receive share links, so configure them deliberately and inform users. Outbox records contain recipient metadata; establish retention before production.
+
 Require HTTPS outside local development, preserve certificate validation, protect backup volumes and bootstrap secrets, and restrict access to the test deployment. Anyone possessing an unprotected share link can access that share. A password-protected share requires both the link and its password; this is not end-to-end encryption.
 
 Known limitations are documented in README.md and docs/DEPLOYMENT.md. Security fixes must be built into a versioned image, not installed interactively into a running container. CI does not replace a security review.

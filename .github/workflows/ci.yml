@@ -17,4 +17,5 @@ jobs:
       - run: python -m pytest -q
       - run: node --check static/app.js
       - run: node --check static/admin.js
+      - run: node --check static/mail.js
       - run: docker build -t passelio:ci .
