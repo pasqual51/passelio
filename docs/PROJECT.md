@@ -1,6 +1,6 @@
 # Passelio — Project blueprint
 
-Status: planning. No runnable application or production release is available yet.
+Status: a runnable private alpha (0.1.0-alpha.1) is available on codex/initial-alpha in pull request #1. No production release or full Erugo feature parity is available. See VALIDATION.md for completed checks and remaining limits.
 
 ## Purpose
 
