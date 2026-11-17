@@ -4,11 +4,12 @@
 
 An independent, Docker-first file-sharing project with a French and English interface.
 
-**Status: private alpha, 0.1.0-alpha.4. Not production-ready.** This is the first functional milestone, not full Erugo feature parity. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
+**Status: private alpha, 0.1.0-alpha.5. Not production-ready.** This is the first functional milestone, not full Erugo feature parity. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
 
 ## Implemented
 
 - Responsive interface and original SVG logo; French/English switching and saved preferences.
+- Visual identity settings: validated custom logo/favicon/backgrounds, rotation, three theme presets, color editor and data-only theme JSON import/export.
 - Initial administrator, user creation, login/logout and password changes.
 - Dedicated bilingual administration console at /admin: overview, user roles/status, all-share revocation, storage, recent audit events and persistent quota settings.
 - Multiple files per share, streamed uploads, progress and SHA-256 checksums.

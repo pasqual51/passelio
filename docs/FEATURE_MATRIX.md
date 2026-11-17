@@ -6,7 +6,7 @@ The owner supplied reference screenshots of a self-hosted sharing application on
 | --- | --- | --- |
 | About | Version exposed in instance status and health; project documentation | Dedicated about page, dependency/runtime information and verified support/license links |
 | Statistics | Users, active shares, files, logical storage, physical free space, cleanup backlog | Time-range charts, protected/expired counts, top shares and user activity summaries |
-| Visual identity | Original SVG logo, responsive original design, configurable application name | Validated custom background/logo/favicon uploads, image rotation, logo width, theme presets and safe theme import/export |
+| Visual identity | Original design; name/logo/favicon/backgrounds; validated raster imports; image rotation; logo width; three presets and safe color-only JSON import/export | Optional video support and advanced theme palettes |
 | General system settings | Application name, share/email base URL, login message and default language with explanatory help | Optional visibility of language selector and additional display preferences |
 | Sharing settings | Default/max expiry, global/per-share quotas, default download limit, optional mandatory share password | Reverse/upload requests, configurable retention after expiry, human-readable link modes, resumable uploads and folders/ZIP |
 | Notifications | Explicit bilingual share notifications, automatic CC/BCC, persistent delivery history and retry | Download, soon-to-expire, expired and cleanup lifecycle notifications with idempotent scheduling |
@@ -22,7 +22,7 @@ The owner supplied reference screenshots of a self-hosted sharing application on
 ## Delivery order
 
 1. Finish and validate grouped system settings with field-level help; keep all existing administration features working.
-2. Add safe visual customization and a dedicated email-template workspace.
+2. Visual customization delivered in alpha.5; add a dedicated email-template workspace next.
 3. Add account invitation/recovery and richer profile/user management.
 4. Add upload requests and reliable resumable transfers.
 5. Add lifecycle notifications, retention and expanded statistics, then review advanced identity providers and backup automation.

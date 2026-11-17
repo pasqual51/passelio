@@ -7,3 +7,4 @@ click==8.5.1
 blinker==1.9.0
 gunicorn==27.0.1
 packaging==26.3
+Pillow==13.0.0

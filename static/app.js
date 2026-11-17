@@ -9,10 +9,10 @@ let user=null,currentData=null,publicData=null,busy=false,lastShareId=null,insta
 const $=id=>document.getElementById(id),t=k=>translations[lang][k]||translations[lang].error;
 const sid=location.pathname.startsWith('/s/')?location.pathname.slice(3):null;
 function element(tag,text,className){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(className)e.className=className;return e;}
-function notice(key,error=false){$('notice').textContent=t(key);$('notice').className=error?'error':'';$('notice').hidden=false;}
+function notice(key,error=false){$('notice').dataset.messageKey=key;$('notice').textContent=t(key);$('notice').className=error?'error':'';$('notice').hidden=false;}
 function bytes(n){return new Intl.NumberFormat(lang,{style:'unit',unit:n>=1024**3?'gigabyte':n>=1024**2?'megabyte':'kilobyte',maximumFractionDigits:2}).format(n/(n>=1024**3?1024**3:n>=1024**2?1024**2:1024));}
 function date(n){return new Date(n*1000).toLocaleString(lang==='fr'?'fr-FR':'en-GB');}
-function translate(){document.documentElement.lang=lang;$('language').value=lang;document.querySelectorAll('[data-i18n]').forEach(e=>{if(translations[lang][e.dataset.i18n]!==undefined)e.textContent=t(e.dataset.i18n);});if(currentData)renderShares();if(publicData)renderPublic();}
+function translate(){document.documentElement.lang=lang;$('language').value=lang;document.querySelectorAll('[data-i18n]').forEach(e=>{if(translations[lang][e.dataset.i18n]!==undefined)e.textContent=t(e.dataset.i18n);});if(currentData)renderShares();if(publicData)renderPublic();if($('notice').dataset.messageKey&&!$('notice').hidden)$('notice').textContent=t($('notice').dataset.messageKey);}
 async function api(path,options={}){const headers={...options.headers};if(options.body&&!(options.body instanceof Blob))headers['Content-Type']='application/json';if(user)headers['X-CSRF-Token']=user.csrf;const r=await fetch('/api'+path,{...options,headers});const body=await r.json();if(!r.ok)throw new Error(body.error||'error');return body;}
 function fail(e){notice(translations[lang][e.message]?e.message:'network',true);}
 $('language').addEventListener('change',async()=>{lang=$('language').value;localStorage.setItem('passelio_language',lang);translate();if(user)try{await api('/me/language',{method:'PUT',body:JSON.stringify({language:lang})});}catch(e){fail(e);}});

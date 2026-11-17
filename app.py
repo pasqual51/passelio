@@ -17,6 +17,7 @@ from flask import Flask, g, jsonify, request, send_file
 from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash, generate_password_hash
 from mailer import init_mail,validate_settings,address,addresses
+from branding import init_branding
 
 
 def create_app(config=None):
@@ -172,7 +173,9 @@ def create_app(config=None):
 
     @app.before_request
     def check_origin():
-        if not (request.method == 'POST' and request.path.startswith('/api/shares/') and request.path.endswith('/files')):
+        if request.method=='POST' and request.path.startswith('/api/admin/branding/assets/'):
+            request.max_content_length=5*1024**2
+        elif not (request.method == 'POST' and request.path.startswith('/api/shares/') and request.path.endswith('/files')):
             request.max_content_length = 65536 if request.path=='/api/admin/mail/settings' else 16384
         else:
             request.max_content_length = current_limits()['SHARE_LIMIT']
@@ -204,7 +207,7 @@ def create_app(config=None):
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="0.1.0-alpha.4")
+        return jsonify(status="ok", version="0.1.0-alpha.5")
 
     @app.get('/api/config')
     def public_config():
@@ -441,7 +444,7 @@ def create_app(config=None):
                         files=c.execute('SELECT count(*) FROM files WHERE ready=1').fetchone()[0],
                         used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0],
                         cleanup_bytes=c.execute('SELECT coalesce(sum(size),0) FROM files JOIN shares ON shares.id=files.share_id WHERE revoked=1 OR expires<=?',(time.time(),)).fetchone()[0],
-                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.4')
+                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.5')
         return jsonify(result)
 
     @app.get('/api/admin/users')
@@ -646,4 +649,5 @@ def create_app(config=None):
         with db(True) as c:audit(c,'database.exported')
         return send_file(io.BytesIO(data),as_attachment=True,download_name='passelio-database-'+time.strftime('%Y%m%d-%H%M%S',time.gmtime())+'.sqlite',mimetype='application/octet-stream')
 
+    init_branding(app,db,root,protected,fail,audit)
     return app

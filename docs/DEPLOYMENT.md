@@ -81,3 +81,12 @@ The system_config table is added automatically on upgrade. It stores branding te
 New shares enforce default/max expiry (1–365 days) and optionally require a share password of at least 8 characters. Existing shares remain unchanged. Account passwords still require 14 characters. Session lifetime is 1–168 hours; reducing it caps existing sessions, increasing it only affects future logins.
 
 The database export uses SQLite's backup API into a standalone DELETE-journal snapshot, avoiding inconsistent copies of a live WAL database. It is administrator-only, CSRF-protected, limited to three requests per 15 minutes, and capped at 32 MiB before and after backup. The snapshot contains password hashes, share links and mail metadata; protect it. It excludes uploaded blobs and the SMTP password file, so it is not a full disaster-recovery backup. Full-volume backup/restore instructions above remain applicable.
+
+
+## Visual identity (alpha.5)
+
+The image-processing dependency Pillow is pinned. Custom branding assets are PNG/JPEG/WebP only: 5 MiB input, 20 million pixels, one frame, bounded output dimensions, re-encoded PNG without metadata. Logo/favicons/backgrounds are stored under /data/branding with server-generated identifiers. They are intentionally public by identifier; do not upload confidential images. Imported SVG, animation and video are rejected. A separate budget of 12 assets / 32 MiB and a physical free-space check prevent uncontrolled visual-asset growth; these bytes are not included in the logical share quota.
+
+branding_config and branding_assets tables are created automatically. Deleting an asset removes its file and clears references atomically at the database level. Include images in a full-volume backup; SQLite export includes metadata/settings but not the image files.
+
+Theme JSON contains only name and three hex colors (primary, accent, background). Unknown fields, CSS, URLs and executable templates are rejected. Main foreground/button contrast is checked at 4.5:1; this is not a full accessibility certification of every custom page or image. Presets are Midnight, Ocean and Amber. Rotation supports off/1/3/5/10/30 minutes and respects reduced-motion preferences. No external font/image service is used.

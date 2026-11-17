@@ -53,3 +53,12 @@ Partage configure l'expiration par défaut/maximale, la limite de téléchargeme
 Notifications regroupe les CC/CCI automatiques ; SMTP contient la connexion et le test. Authentification règle la durée des sessions. Une réduction raccourcit les sessions existantes ; une augmentation ne les prolonge pas.
 
 Sauvegarde de la base télécharge une copie SQLite cohérente de 32 Mio maximum. Elle contient des données sensibles et ne comprend ni les fichiers partagés ni le mot de passe SMTP séparé. Elle ne remplace pas la sauvegarde complète du volume. La restauration depuis l'interface et les sauvegardes planifiées restent à développer.
+
+
+## Identité visuelle
+
+Importer des logos, favicons et fonds PNG, JPEG ou WebP (5 Mio, 20 mégapixels maximum). Ils sont redimensionnés, réencodés en PNG et débarrassés de leurs métadonnées. Les SVG importés, vidéos et animations ne sont pas acceptés. Utiliser un logo/favicon depuis sa carte, ou revenir aux éléments d'origine. Sélectionner jusqu'à huit fonds et une durée de rotation ; les animations réduites désactivent la rotation.
+
+Midnight, Ocean et Amber sont proposés. Les thèmes personnalisés utilisent uniquement trois couleurs hexadécimales. Le contraste des couleurs principales est contrôlé. Un fichier JSON importé remplit l'éditeur ; cliquer ensuite sur Appliquer le thème pour l'activer. Aucun CSS ni script importé n'est exécuté.
+
+Les éléments visuels sont publics lorsqu'on connaît leur URL et ne doivent contenir aucune donnée confidentielle. Ils ont un budget séparé de 12 fichiers et 32 Mio, sur le même volume physique. La suppression d'une image est définitive et réinitialise ses sélections actives. Sauvegarder tout le volume pour conserver les images ; l'export SQLite seul ne les inclut pas.

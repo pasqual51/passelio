@@ -36,3 +36,9 @@ The background outbox process is enabled in the local preview. Actual delivery t
 Four additional tests cover persisted branding/link settings, public configuration redaction, server-side expiry/password/download defaults, session lifetime reduction, admin/CSRF restrictions, malformed origin settings, automatic copies and a restorable SQLite snapshot. The initial snapshot test caught a WAL-mode serialization problem; export now uses SQLite's backup API into a standalone DELETE-journal file. The exported bytes deserialize successfully and pass integrity_check.
 
 The full pre-fix suite had 25 passing cases and the snapshot failure; all four focused system tests pass after the fix. CI reruns all 26 cases on the final commit. Browser checks confirmed French/English system labels, the General form/help layout, notification-copy controls and integrated SMTP panel. No real company screenshots or user lists are included in the repository; docs/FEATURE_MATRIX.md records the functional inventory without those assets.
+
+## Visual identity extension (alpha.5)
+
+Four additional automated cases cover raster upload/re-encoding, public image delivery, activation, persistence after app recreation, deletion/reference reset, role/CSRF checks, SVG/HTML/oversized input rejection, typed asset references, background selection, separate asset accounting, strict data-only themes and contrast rejection. These four tests and the expanded five-module translation-key/static-label check pass locally. CI runs the full 30-case suite and builds the updated Docker image with pinned Pillow.
+
+Browser checks cover the French and English visual-identity controls and actual application of the Ocean preset. The original Midnight preset was restored afterward. No corporate logo or screenshot was imported; tests use generated raster data. Videos/animations, uploaded SVG and arbitrary CSS themes are not supported.
