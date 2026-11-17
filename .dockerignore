@@ -1,0 +1,15 @@
+.git
+.venv
+.env
+.env.*
+secrets
+data
+storage
+uploads
+tests
+docs
+__pycache__
+.pytest_cache
+.preview*
+*.sqlite*
+*.log

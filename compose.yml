@@ -1,0 +1,54 @@
+services:
+  app:
+    build: .
+    image: passelio:0.1.0-alpha.1
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment: &environment
+      DATA_DIR: /data
+      BASE_URL: ${BASE_URL:-http://localhost:8080}
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
+      ADMIN_PASSWORD_FILE: /run/secrets/admin_password
+      STORAGE_LIMIT: ${STORAGE_LIMIT:-21474836480}
+      SHARE_LIMIT: ${SHARE_LIMIT:-2147483648}
+    volumes:
+      - passelio_data:/data
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    secrets:
+      - admin_password
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    pids_limit: 128
+  cleanup:
+    image: passelio:0.1.0-alpha.1
+    restart: unless-stopped
+    init: true
+    command: ["python", "worker.py"]
+    environment: *environment
+    volumes:
+      - passelio_data:/data
+    secrets:
+      - admin_password
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    pids_limit: 64
+    healthcheck:
+      disable: true
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  passelio_data:
+secrets:
+  admin_password:
+    file: ./secrets/admin_password.txt
