@@ -69,8 +69,11 @@ def create_app(config=None):
         CREATE INDEX IF NOT EXISTS attempts_bucket ON attempts(bucket,created);
         CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY, created INTEGER NOT NULL,
           user_id INTEGER, action TEXT NOT NULL, target TEXT);
+        CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value INTEGER NOT NULL);
         """)
     with db(True) as c:
+        if 'active' not in [r['name'] for r in c.execute('PRAGMA table_info(users)')]:
+            c.execute('ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1')
         if c.execute("SELECT count(*) FROM users").fetchone()[0] == 0:
             email = app.config["ADMIN_EMAIL"].strip().lower()
             password_file = app.config["ADMIN_PASSWORD_FILE"]
@@ -107,7 +110,7 @@ def create_app(config=None):
                 with db() as c:
                     row = c.execute("SELECT users.*,sessions.csrf FROM sessions JOIN users ON users.id=sessions.user_id "
                                     "WHERE token=? AND expires>?", (hashlib.sha256(token.encode()).hexdigest(), time.time())).fetchone()
-                if not row:
+                if not row or not row['active']:
                     return fail("unauthorized", 401)
                 g.user = dict(row)
                 if admin and not row["admin"]:
@@ -152,6 +155,8 @@ def create_app(config=None):
     def check_origin():
         if not (request.method == 'POST' and request.path.startswith('/api/shares/') and request.path.endswith('/files')):
             request.max_content_length = 16384
+        else:
+            request.max_content_length = current_limits()['SHARE_LIMIT']
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             origin = request.headers.get("Origin")
             if origin and origin != app.config["BASE_URL"].rstrip("/"):
@@ -173,13 +178,14 @@ def create_app(config=None):
         return fail("too_large" if e.code == 413 else "request_error", e.code)
 
     @app.get("/")
+    @app.get("/admin")
     @app.get("/s/<share_id>")
     def index(share_id=None):
         return app.send_static_file("index.html")
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="0.1.0-alpha.1")
+        return jsonify(status="ok", version="0.1.0-alpha.2")
 
     @app.post("/api/login")
     def login():
@@ -193,7 +199,7 @@ def create_app(config=None):
             user = c.execute("SELECT * FROM users WHERE email=?", (email.strip().lower(),)).fetchone()
         # Always perform a password hash calculation, including unknown accounts.
         stored = user["password"] if user else generate_password_hash("unavailable-account")
-        if not check_password_hash(stored, password) or not user:
+        if not check_password_hash(stored, password) or not user or not user['active']:
             return fail("invalid_credentials", 401)
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
         with db(True) as c:
@@ -266,7 +272,8 @@ def create_app(config=None):
         with db() as c:
             shares = c.execute("SELECT id,title,created,expires,revoked,downloads,max_downloads FROM shares WHERE owner=? ORDER BY created DESC", (g.user["id"],)).fetchall()
             used = c.execute("SELECT coalesce(sum(size),0) FROM files").fetchone()[0]
-        return jsonify(shares=[dict(s) for s in shares], used=used, storage_limit=app.config["STORAGE_LIMIT"], share_limit=app.config["SHARE_LIMIT"])
+        limits=current_limits()
+        return jsonify(shares=[dict(s) for s in shares], used=used, storage_limit=limits['STORAGE_LIMIT'], share_limit=limits['SHARE_LIMIT'])
 
     @app.post("/api/shares")
     @protected()
@@ -303,7 +310,8 @@ def create_app(config=None):
                 return fail("not_found", 404)
             share_size = c.execute("SELECT coalesce(sum(size),0) FROM files WHERE share_id=?", (sid,)).fetchone()[0]
             total = c.execute("SELECT coalesce(sum(size),0) FROM files").fetchone()[0]
-            if share_size+size > app.config["SHARE_LIMIT"] or total+size > app.config["STORAGE_LIMIT"] or shutil.disk_usage(root).free < size+64*1024**2:
+            limits=current_limits(c)
+            if share_size+size > limits['SHARE_LIMIT'] or total+size > limits['STORAGE_LIMIT'] or shutil.disk_usage(root).free < size+64*1024**2:
                 return fail("quota", 413)
             c.execute("INSERT INTO files(id,share_id,name,size,created) VALUES(?,?,?,?,?)", (fid,sid,name,size,int(time.time())))
         try:
@@ -387,5 +395,91 @@ def create_app(config=None):
                 c.execute("UPDATE shares SET downloads=downloads+1 WHERE id=?",(sid,))
                 audit(c,"file.downloaded",fid)
             return send_file(blobs/fid,as_attachment=True,download_name=f["name"],mimetype="application/octet-stream",conditional=False)
+
+    def current_limits(connection=None):
+        if connection is None:
+            with db() as c:
+                return current_limits(c)
+        values={key:app.config[key] for key in ('STORAGE_LIMIT','SHARE_LIMIT')}
+        values.update({r['key']:r['value'] for r in connection.execute('SELECT key,value FROM settings')})
+        return values
+
+    @app.get('/api/admin/overview')
+    @protected(admin=True)
+    def admin_overview():
+        with db() as c:
+            result=dict(users=c.execute('SELECT count(*) FROM users').fetchone()[0],
+                        active_users=c.execute('SELECT count(*) FROM users WHERE active=1').fetchone()[0],
+                        shares=c.execute('SELECT count(*) FROM shares WHERE revoked=0 AND expires>?',(time.time(),)).fetchone()[0],
+                        files=c.execute('SELECT count(*) FROM files WHERE ready=1').fetchone()[0],
+                        used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0],
+                        cleanup_bytes=c.execute('SELECT coalesce(sum(size),0) FROM files JOIN shares ON shares.id=files.share_id WHERE revoked=1 OR expires<=?',(time.time(),)).fetchone()[0],
+                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.2')
+        return jsonify(result)
+
+    @app.get('/api/admin/users')
+    @protected(admin=True)
+    def admin_users():
+        q=request.args.get('q','')[:254].lower()
+        with db() as c:
+            rows=c.execute('SELECT u.id,u.email,u.admin,u.active,u.language,count(DISTINCT s.id) AS shares,coalesce(sum(f.size),0) AS used FROM users u LEFT JOIN shares s ON s.owner=u.id LEFT JOIN files f ON f.share_id=s.id WHERE instr(lower(u.email),?)>0 GROUP BY u.id ORDER BY u.email LIMIT 200',(q,)).fetchall()
+        return jsonify(users=[dict(r) for r in rows])
+
+    @app.patch('/api/admin/users/<int:uid>')
+    @protected(admin=True)
+    def admin_user_update(uid):
+        b=request.get_json(silent=True) or {}
+        if not b or any(k not in ('active','admin') or type(v) is not bool for k,v in b.items()):
+            return fail('invalid_input')
+        with db(True) as c:
+            row=c.execute('SELECT * FROM users WHERE id=?',(uid,)).fetchone()
+            if not row:return fail('not_found',404)
+            if uid==g.user['id'] and (b.get('active') is False or b.get('admin') is False):
+                return fail('self_admin',409)
+            if row['admin'] and row['active'] and (b.get('active') is False or b.get('admin') is False):
+                if c.execute('SELECT count(*) FROM users WHERE active=1 AND admin=1').fetchone()[0]<=1:
+                    return fail('last_admin',409)
+            active=int(b.get('active',bool(row['active'])));admin=int(b.get('admin',bool(row['admin'])))
+            c.execute('UPDATE users SET active=?,admin=? WHERE id=?',(active,admin,uid))
+            c.execute('DELETE FROM sessions WHERE user_id=?',(uid,))
+            audit(c,'user.updated',str(uid))
+        return jsonify(ok=True)
+
+    @app.get('/api/admin/shares')
+    @protected(admin=True)
+    def admin_shares():
+        q=request.args.get('q','')[:254].lower()
+        with db() as c:
+            rows=c.execute('SELECT s.id,s.title,s.created,s.expires,s.revoked,s.downloads,s.max_downloads,u.email AS owner,count(f.id) AS files,coalesce(sum(f.size),0) AS size FROM shares s JOIN users u ON u.id=s.owner LEFT JOIN files f ON f.share_id=s.id WHERE instr(lower(s.title),?)>0 OR instr(lower(u.email),?)>0 GROUP BY s.id ORDER BY s.created DESC LIMIT 200',(q,q)).fetchall()
+        return jsonify(shares=[dict(r) for r in rows])
+
+    @app.delete('/api/admin/shares/<sid>')
+    @protected(admin=True)
+    def admin_revoke(sid):
+        with db(True) as c:
+            if not c.execute('UPDATE shares SET revoked=1 WHERE id=?',(sid,)).rowcount:
+                return fail('not_found',404)
+            audit(c,'admin.share_revoked',sid)
+        return jsonify(ok=True)
+
+    @app.get('/api/admin/audit')
+    @protected(admin=True)
+    def admin_audit():
+        with db() as c:
+            rows=c.execute('SELECT a.id,a.created,a.action,a.target,u.email AS actor FROM audit a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.id DESC LIMIT 200').fetchall()
+        return jsonify(events=[dict(r) for r in rows])
+
+    @app.put('/api/admin/settings')
+    @protected(admin=True)
+    def admin_settings():
+        b=request.get_json(silent=True) or {}
+        if set(b)!=set(('STORAGE_LIMIT','SHARE_LIMIT')) or any(type(v) is not int or not 1<=v<=1024**5 for v in b.values()) or b['SHARE_LIMIT']>b['STORAGE_LIMIT']:
+            return fail('invalid_input')
+        with db(True) as c:
+            used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0]
+            if b['STORAGE_LIMIT']<used:return fail('below_usage',409)
+            for k,v in b.items():c.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(k,v))
+            audit(c,'settings.updated')
+        return jsonify(ok=True)
 
     return app

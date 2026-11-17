@@ -39,7 +39,7 @@ Stop both services before taking a consistent backup of the entire named volume.
 3. `docker compose start`.
 4. Test restoration into a separate, isolated deployment with the same application version. Check login, share metadata, sample downloads and SHA-256 hashes.
 
-Never use `docker compose down -v` during a normal upgrade: it deletes persistent data. No schema-changing migration is included in this initial release; future versions must document migration and rollback compatibility.
+Never use `docker compose down -v` during a normal upgrade: it deletes persistent data. Alpha.2 adds a users.active column (default enabled for existing accounts) and a settings table automatically at startup. Back up the complete volume before upgrading. Rolling back to alpha.1 would ignore disabled-account status; restore the pre-upgrade backup if you must roll back rather than serving that database with old code.
 
 ## Crash recovery limitations
 
@@ -48,3 +48,14 @@ Abruptly terminated uploads may leave `ready=0` file rows and incomplete blobs. 
 ## Checks
 
 `GET /api/health` returns version and status without credentials. Docker health checks test HTTP availability. It does not establish that every background operation or backup works. Read cleanup process logs separately. Passwords, session cookies, share-password tickets and password-reset links must not be placed in logs or bug reports.
+
+
+## Administration (alpha.2)
+
+Open /admin using an administrator account. The console provides active-user/share/file counts, logical quota and real disk-free information, searchable user/share lists (up to 200 rows), and the 200 latest audit events.
+
+Administrators can add users, assign/revoke the administrator role, disable/re-enable accounts and revoke any share. A status/role change invalidates that user's active sessions. You cannot disable/demote your own administrator account or remove the last active administrator. Disabling an account does not revoke existing public links; use the all-shares view separately.
+
+Settings in the database override STORAGE_LIMIT and SHARE_LIMIT environment defaults and apply to every worker. Reducing the total quota below current reservations/usage is rejected. Reducing the per-share limit does not delete existing files. The interface uses GiB/Gio; the API stores integer bytes. A quota change never provisions or resizes a disk.
+
+Audit metadata includes actors, action types and target identifiers, not passwords or session tokens. Administrators can see other users' share metadata, but the console does not bypass share-password checks or provide direct file downloads. Account deletion, SMTP configuration, branding and antivirus controls are not implemented in this release.

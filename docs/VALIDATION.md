@@ -15,3 +15,10 @@
 This is not an independent security audit. Browser interaction tests do not yet cover every workflow, assistive technology or mobile device. Large-file, low-bandwidth, abrupt-process termination and sustained-load testing remain required. No SMTP test is applicable because email is not implemented in this alpha. No claim of complete Erugo feature parity is made.
 
 GitHub Actions is configured to repeat Python tests, JavaScript syntax checking and Docker construction. Its remote outcome must be inspected after pushing; the presence of a workflow file is not evidence that a run passed.
+
+
+## Administration extension (alpha.2)
+
+Twelve pytest scenarios pass after the extension. Additional coverage includes admin-only access to every administrative API, CSRF enforcement, account disabling and session invalidation, blocked login for disabled users, role changes, self-demotion protection, persisted quota changes across application instances, increased upload limits, administrative share revocation, audit events and migration of an existing users table.
+
+The French and English administration screens were checked in the browser: overview, users and settings. Existing local preview data was copied with the server stopped before restarting on a persistent preview directory. The existing Erugo instance was not modified.

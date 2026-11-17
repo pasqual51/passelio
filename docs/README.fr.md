@@ -24,3 +24,12 @@ Cette alpha n'est pas prête pour la production. Il n'y a pas encore de notifica
 La limite de téléchargements compte chaque requête de fichier, pas les personnes ni les partages complets. Une coupure pendant l'envoi impose de recommencer. Un arrêt brutal du serveur peut laisser une réservation à examiner manuellement. Le quota ne remplace pas la surveillance de l'espace disque réel.
 
 Le développement de Passelio n'altère pas l'instance Erugo existante. Le nom et la licence doivent être validés avant une publication publique.
+
+
+## Administration
+
+Ouvrir /admin avec un compte administrateur. Six rubriques sont disponibles : vue d'ensemble, utilisateurs, tous les partages, stockage, journal d'activité et paramètres. Il est possible d'ajouter des utilisateurs, de modifier leurs rôles, de désactiver/réactiver leurs comptes, de révoquer les partages et d'ajuster les quotas.
+
+Les changements de rôle ou d'état ferment les sessions du compte concerné. Il n'est pas possible de retirer son propre rôle administrateur ni de désactiver son propre compte. Désactiver un utilisateur ne révoque pas automatiquement ses anciens liens.
+
+Les quotas sont exprimés en Gio dans l'interface et persistent dans la base ; ils ne changent pas la taille du disque. L'administration affiche au maximum 200 utilisateurs/partages et les 200 derniers événements. Les contrôles SMTP, personnalisation et antivirus restent à développer.

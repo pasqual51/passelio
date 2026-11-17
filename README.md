@@ -4,12 +4,13 @@
 
 An independent, Docker-first file-sharing project with a French and English interface.
 
-**Status: private alpha, 0.1.0-alpha.1. Not production-ready.** This is the first functional milestone, not full Erugo feature parity. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
+**Status: private alpha, 0.1.0-alpha.2. Not production-ready.** This is the first functional milestone, not full Erugo feature parity. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
 
 ## Implemented
 
 - Responsive interface and original SVG logo; French/English switching and saved preferences.
 - Initial administrator, user creation, login/logout and password changes.
+- Dedicated bilingual administration console at /admin: overview, user roles/status, all-share revocation, storage, recent audit events and persistent quota settings.
 - Multiple files per share, streamed uploads, progress and SHA-256 checksums.
 - Expiring links (1–30 days), optional share password, revocation and download-request limits.
 - Persistent SQLite database and file storage; global and per-share quotas reserved transactionally.
@@ -18,7 +19,7 @@ An independent, Docker-first file-sharing project with a French and English inte
 
 ## Not implemented yet
 
-Resumable uploads, folders/ZIP downloads, SMTP/CC/BCC notifications, upload requests, per-user quotas, administrator audit viewer, S3, MFA/SSO and antivirus. There is no end-to-end encryption or completed security audit. See [the roadmap](docs/PROJECT.md).
+Resumable uploads, folders/ZIP downloads, SMTP/CC/BCC notifications, upload requests, per-user quotas, S3, MFA/SSO and antivirus. There is no end-to-end encryption or completed security audit. See [the roadmap](docs/PROJECT.md).
 
 ## Try locally with Docker
 
@@ -61,7 +62,7 @@ Use the header language selector. The first visit uses the browser language; loc
 - No upload resume in this alpha. Reloading or losing the connection requires retrying. The UI revokes a partially failed share when it can reach the server.
 - Files from an abruptly killed upload can retain reservations. Stop the services and inspect/recover them before restarting; automatic stale-upload recovery is a later milestone.
 - Storage quota is logical file bytes, not a filesystem hard quota. Keep free space for the database, logs and backups. Uploads are refused if less than 64 MiB headroom would remain.
-- All users currently see global usage. User removal, password recovery and a full account lifecycle are not implemented yet.
+- All users currently see global usage. Accounts can be disabled/re-enabled and roles changed; permanent user deletion and password recovery are not implemented yet.
 - Reverse-proxy deployments currently rate-limit by the direct peer IP. Forwarded client headers are intentionally not trusted; users may share a rate-limit bucket.
 
 ## Security and backups
