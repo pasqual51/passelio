@@ -4,7 +4,7 @@
 
 An independent, Docker-first file-sharing project with a French and English interface.
 
-**Status: private alpha, 0.1.0-alpha.3. Not production-ready.** This is the first functional milestone, not full Erugo feature parity. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
+**Status: private alpha, 0.1.0-alpha.4. Not production-ready.** This is the first functional milestone, not full Erugo feature parity. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
 
 ## Implemented
 
@@ -12,8 +12,9 @@ An independent, Docker-first file-sharing project with a French and English inte
 - Initial administrator, user creation, login/logout and password changes.
 - Dedicated bilingual administration console at /admin: overview, user roles/status, all-share revocation, storage, recent audit events and persistent quota settings.
 - Multiple files per share, streamed uploads, progress and SHA-256 checksums.
-- Expiring links (1–30 days), optional share password, revocation and download-request limits.
+- Expiring links (configurable maximum, up to 365 days), optional share password, revocation and download-request limits.
 - Persistent SQLite database and file storage; global and per-share quotas reserved transactionally.
+- Grouped system settings with help: application name/URL, login message, default language, share expiry/password policies, session lifetime and consistent SQLite export.
 - Separate cleanup worker for expired/revoked files, every five minutes.
 - SMTP settings, verified STARTTLS/SSL, explicit test email, editable French/English templates, per-recipient notifications with automatic CC/BCC, persistent outbox and safe delivery diagnostics.
 - Non-root Docker container, CSRF protection, server-side sessions and login throttling.
@@ -69,3 +70,5 @@ Use the header language selector. The first visit uses the browser language; loc
 ## Security and backups
 
 Read [SECURITY.md](SECURITY.md) and [deployment and backups](docs/DEPLOYMENT.md). Never use real confidential files during alpha testing. Report security concerns privately to the repository owner rather than opening a public issue containing exploit details or secrets.
+
+The reference feature inventory and remaining milestones are tracked in [FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).

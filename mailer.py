@@ -137,7 +137,7 @@ def init_mail(app,db,root):
                     msg.set_content('Test SMTP envoyé par Passelio.' if job['language']=='fr' else 'SMTP test sent by Passelio.')
                 else:
                     import datetime
-                    values=dict(title=share['title'].replace('\r',' ').replace('\n',' '),url=app.config['BASE_URL'].rstrip('/')+'/s/'+share['id'],sender=account['email'],expiry=datetime.datetime.fromtimestamp(share['expires'],datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC'))
+                    values=dict(title=share['title'].replace('\r',' ').replace('\n',' '),url=app.system_settings()['application_url']+'/s/'+share['id'],sender=account['email'],expiry=datetime.datetime.fromtimestamp(share['expires'],datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC'))
                     template=config['templates'][job['language']]
                     msg['Subject']=Template(template['subject']).substitute(values)
                     msg.set_content(Template(template['body']).substitute(values))

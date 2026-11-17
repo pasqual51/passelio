@@ -5,6 +5,9 @@ import secrets
 import shutil
 import sqlite3
 import time
+import json
+import io
+import tempfile
 from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
@@ -71,6 +74,7 @@ def create_app(config=None):
         CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY, created INTEGER NOT NULL,
           user_id INTEGER, action TEXT NOT NULL, target TEXT);
         CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS system_config(id INTEGER PRIMARY KEY CHECK(id=1),value TEXT NOT NULL);
         """)
     with db(True) as c:
         if 'active' not in [r['name'] for r in c.execute('PRAGMA table_info(users)')]:
@@ -88,6 +92,18 @@ def create_app(config=None):
 
     def fail(code, status=400):
         return jsonify(error=code), status
+
+    def system_settings(connection=None):
+        if connection is None:
+            with db() as c:return system_settings(c)
+        defaults=dict(application_name='Passelio',application_url=app.config['BASE_URL'].rstrip('/'),
+                      login_message='',default_language='en',default_days=7,max_days=30,
+                      default_downloads=0,require_share_password=False,session_hours=12)
+        row=connection.execute('SELECT value FROM system_config WHERE id=1').fetchone()
+        if row:defaults.update(json.loads(row['value']))
+        return defaults
+
+    app.system_settings=system_settings
 
     def audit(c, action, target=None):
         c.execute("INSERT INTO audit(created,user_id,action,target) VALUES(?,?,?,?)",
@@ -162,7 +178,7 @@ def create_app(config=None):
             request.max_content_length = current_limits()['SHARE_LIMIT']
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             origin = request.headers.get("Origin")
-            if origin and origin != app.config["BASE_URL"].rstrip("/"):
+            if origin and origin not in (app.config["BASE_URL"].rstrip("/"),system_settings()['application_url']):
                 return fail("csrf", 403)
             if request.is_json and not isinstance(request.get_json(silent=True),dict):
                 return fail("invalid_input")
@@ -188,7 +204,12 @@ def create_app(config=None):
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="0.1.0-alpha.3")
+        return jsonify(status="ok", version="0.1.0-alpha.4")
+
+    @app.get('/api/config')
+    def public_config():
+        config=system_settings()
+        return jsonify({k:v for k,v in config.items() if k!='session_hours'})
 
     @app.post("/api/login")
     def login():
@@ -205,10 +226,11 @@ def create_app(config=None):
         if not check_password_hash(stored, password) or not user or not user['active']:
             return fail("invalid_credentials", 401)
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+        duration=system_settings()['session_hours']*3600
         with db(True) as c:
-            c.execute("INSERT INTO sessions VALUES(?,?,?,?)", (hashlib.sha256(token.encode()).hexdigest(), user["id"], csrf, int(time.time()) + 43200))
+            c.execute("INSERT INTO sessions VALUES(?,?,?,?)", (hashlib.sha256(token.encode()).hexdigest(), user["id"], csrf, int(time.time()) + duration))
         response = jsonify(ok=True)
-        response.set_cookie("passelio_session", token, max_age=43200, httponly=True, secure=app.config["SECURE_COOKIES"], samesite="Strict")
+        response.set_cookie("passelio_session", token, max_age=duration, httponly=True, secure=app.config["SECURE_COOKIES"], samesite="Strict")
         return response
 
     @app.get("/api/me")
@@ -282,13 +304,15 @@ def create_app(config=None):
     @protected()
     def create_share():
         b = request.get_json(silent=True) or {}
+        config=system_settings()
         title, password = b.get("title", ""), b.get("password", "")
         try:
-            days, limit = int(b.get("days", 7)), int(b.get("max_downloads", 0))
+            days, limit = int(b.get("days", config['default_days'])), int(b.get("max_downloads", config['default_downloads']))
         except (ValueError, TypeError):
             return fail("invalid_input")
-        if not isinstance(title, str) or not 1 <= len(title.strip()) <= 150 or not isinstance(password, str) or len(password)>1024 or not 1 <= days <= 30 or not 0 <= limit <= 100000:
+        if not isinstance(title, str) or not 1 <= len(title.strip()) <= 150 or not isinstance(password, str) or len(password)>1024 or not 1 <= days <= config['max_days'] or not 0 <= limit <= 100000:
             return fail("invalid_input")
+        if config['require_share_password'] and len(password)<8:return fail('share_password_required')
         sid = secrets.token_urlsafe(24)
         with db(True) as c:
             count = c.execute("SELECT count(*) FROM shares WHERE owner=? AND expires>? AND revoked=0", (g.user["id"], time.time())).fetchone()[0]
@@ -297,7 +321,7 @@ def create_app(config=None):
             c.execute("INSERT INTO shares(id,owner,title,created,expires,password,max_downloads) VALUES(?,?,?,?,?,?,?)",
                       (sid,g.user["id"],title.strip(),int(time.time()),int(time.time())+days*86400,generate_password_hash(password) if password else None,limit))
             audit(c, "share.created", sid)
-        return jsonify(id=sid, url=app.config["BASE_URL"].rstrip("/")+"/s/"+sid), 201
+        return jsonify(id=sid, url=config['application_url']+"/s/"+sid), 201
 
     @app.post("/api/shares/<sid>/files")
     @protected()
@@ -417,7 +441,7 @@ def create_app(config=None):
                         files=c.execute('SELECT count(*) FROM files WHERE ready=1').fetchone()[0],
                         used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0],
                         cleanup_bytes=c.execute('SELECT coalesce(sum(size),0) FROM files JOIN shares ON shares.id=files.share_id WHERE revoked=1 OR expires<=?',(time.time(),)).fetchone()[0],
-                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.3')
+                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.4')
         return jsonify(result)
 
     @app.get('/api/admin/users')
@@ -514,6 +538,19 @@ def create_app(config=None):
             audit(c,'mail.test_queued',str(job))
         return jsonify(id=job,status='pending'),202
 
+    @app.patch('/api/admin/mail/copies')
+    @protected(admin=True)
+    def mail_copies():
+        body=request.get_json(silent=True) or {}
+        if set(body)!={'cc','bcc'}:return fail('invalid_input')
+        try:copies={k:addresses(body[k]) for k in ('cc','bcc')}
+        except ValueError:return fail('invalid_input')
+        config=app.mail_settings()
+        config.update(copies)
+        app.save_mail(config,'')
+        with db(True) as c:audit(c,'mail.settings_updated')
+        return jsonify(ok=True)
+
     @app.post('/api/shares/<sid>/notify')
     @protected()
     def notify_share(sid):
@@ -555,5 +592,58 @@ def create_app(config=None):
             if not c.execute("UPDATE mail_jobs SET status='pending',error=NULL,updated=? WHERE id=? AND status='failed'",(int(time.time()),jid)).rowcount:return fail('invalid_input',409)
             audit(c,'mail.retried',str(jid))
         return jsonify(ok=True),202
+
+    @app.get('/api/admin/system')
+    @protected(admin=True)
+    def get_system_settings():
+        return jsonify(system_settings())
+
+    @app.patch('/api/admin/system')
+    @protected(admin=True)
+    def update_system_settings():
+        body=request.get_json(silent=True) or {}
+        with db(True) as c:
+            current=system_settings(c)
+            if not body or set(body)-set(current):return fail('invalid_input')
+            value={**current,**body}
+            if not isinstance(value['application_name'],str) or not 1<=len(value['application_name'].strip())<=80 or any(ord(x)<32 for x in value['application_name']):return fail('invalid_input')
+            if not isinstance(value['login_message'],str) or len(value['login_message'])>400:return fail('invalid_input')
+            if not isinstance(value['application_url'],str):return fail('invalid_input')
+            try:
+                url=urlsplit(value['application_url'])
+                port=url.port
+            except ValueError:return fail('invalid_input')
+            if url.scheme not in ('http','https') or not url.hostname or url.username or url.password or url.query or url.fragment or url.path not in ('','/') or any(x.isspace() for x in value['application_url']):return fail('invalid_input')
+            value['application_url']=value['application_url'].rstrip('/')
+            value['application_name']=value['application_name'].strip()
+            if value['default_language'] not in ('fr','en') or type(value['require_share_password']) is not bool:return fail('invalid_input')
+            if any(type(value[k]) is not int for k in ('default_days','max_days','default_downloads','session_hours')):return fail('invalid_input')
+            if not 1<=value['default_days']<=value['max_days']<=365 or not 0<=value['default_downloads']<=100000 or not 1<=value['session_hours']<=168:return fail('invalid_input')
+            c.execute('INSERT INTO system_config VALUES(1,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value',(json.dumps(value),))
+            if value['session_hours']<current['session_hours']:
+                c.execute('UPDATE sessions SET expires=min(expires,?)',(int(time.time())+value['session_hours']*3600,))
+            audit(c,'system.updated',','.join(sorted(body)))
+        return jsonify(ok=True)
+
+    @app.post('/api/admin/database-backup')
+    @protected(admin=True)
+    def database_backup():
+        if not rate_limit('backup:'+str(g.user['id']),3):return fail('rate_limited',429)
+        with db() as c:
+            size=c.execute('PRAGMA page_count').fetchone()[0]*c.execute('PRAGMA page_size').fetchone()[0]
+            if size>32*1024**2:return fail('backup_too_large',413)
+            # Use a standalone DELETE-journal snapshot: a serialized WAL-mode
+            # in-memory database can otherwise require non-existent sidecars.
+            with tempfile.TemporaryDirectory(prefix='.database-export-',dir=root) as folder:
+                path=Path(folder)/'snapshot.sqlite'
+                target=sqlite3.connect(path)
+                try:
+                    c.backup(target)
+                    target.execute('PRAGMA journal_mode=DELETE')
+                finally:target.close()
+                if path.stat().st_size>32*1024**2:return fail('backup_too_large',413)
+                data=path.read_bytes()
+        with db(True) as c:audit(c,'database.exported')
+        return send_file(io.BytesIO(data),as_attachment=True,download_name='passelio-database-'+time.strftime('%Y%m%d-%H%M%S',time.gmtime())+'.sqlite',mimetype='application/octet-stream')
 
     return app

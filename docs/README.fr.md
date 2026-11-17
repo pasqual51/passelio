@@ -42,3 +42,14 @@ Dans Administration → Messagerie, enregistrer le serveur SMTP, le port, STARTT
 Après un partage, ou depuis son bouton de notification dans l'historique, saisir jusqu'à 20 destinataires et choisir la langue du message. Un mail séparé est envoyé à chacun, avec les CC/CCI définies par l'administrateur. Les CCI sont absentes des en-têtes du message. Aucun mot de passe de partage n'est envoyé.
 
 L'historique distingue attente, en cours, accepté par SMTP et échec. Une acceptation SMTP ne garantit pas la présence dans la boîte du destinataire. Une relance manuelle peut créer un doublon, notamment après une acceptation partielle ou une interruption.
+
+
+## Paramètres du système
+
+Général configure le nom, l'URL utilisée dans les liens et les mails, le message de connexion et la langue de repli. Modifier l'URL ne crée pas d'enregistrement DNS et ne configure pas HTTPS. L'origine de déploiement BASE_URL reste également autorisée pour les protections CSRF, afin de garder l'accès à l'administration lors d'une modification.
+
+Partage configure l'expiration par défaut/maximale, la limite de téléchargements et le mot de passe obligatoire (8 caractères minimum pour un partage). Les règles sont appliquées par le serveur aux nouveaux partages. Les quotas restent distincts de l'espace libre physique.
+
+Notifications regroupe les CC/CCI automatiques ; SMTP contient la connexion et le test. Authentification règle la durée des sessions. Une réduction raccourcit les sessions existantes ; une augmentation ne les prolonge pas.
+
+Sauvegarde de la base télécharge une copie SQLite cohérente de 32 Mio maximum. Elle contient des données sensibles et ne comprend ni les fichiers partagés ni le mot de passe SMTP séparé. Elle ne remplace pas la sauvegarde complète du volume. La restauration depuis l'interface et les sauvegardes planifiées restent à développer.

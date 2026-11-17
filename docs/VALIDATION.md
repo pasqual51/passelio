@@ -30,3 +30,9 @@ Twenty-two pytest cases pass after adding the mail subsystem. A disposable loopb
 The SMTP administration labels were checked in the browser after fixing startup ordering: all language dictionaries load before initial rendering, and missing translations no longer replace field labels with a misleading generic error. Translation tests cover every static data-i18n label across all three JavaScript modules. No real SMTP credentials or real recipients were used during validation.
 
 The background outbox process is enabled in the local preview. Actual delivery through a chosen external SMTP provider remains an operator test requiring that provider's settings and an explicit test recipient. SMTP acceptance is not proof of inbox delivery.
+
+## Grouped settings extension (alpha.4)
+
+Four additional tests cover persisted branding/link settings, public configuration redaction, server-side expiry/password/download defaults, session lifetime reduction, admin/CSRF restrictions, malformed origin settings, automatic copies and a restorable SQLite snapshot. The initial snapshot test caught a WAL-mode serialization problem; export now uses SQLite's backup API into a standalone DELETE-journal file. The exported bytes deserialize successfully and pass integrity_check.
+
+The full pre-fix suite had 25 passing cases and the snapshot failure; all four focused system tests pass after the fix. CI reruns all 26 cases on the final commit. Browser checks confirmed French/English system labels, the General form/help layout, notification-copy controls and integrated SMTP panel. No real company screenshots or user lists are included in the repository; docs/FEATURE_MATRIX.md records the functional inventory without those assets.
