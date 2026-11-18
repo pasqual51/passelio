@@ -10,6 +10,7 @@ while True:
     try:
         app.process_mail(limit=10)
         app.run_backup_cycle()
+        app.storage.process_deletions()
         if time.monotonic()-last_cleanup>=300:
             logging.info("Expired/revoked files removed: %s", app.cleanup())
             last_cleanup=time.monotonic()

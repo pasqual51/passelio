@@ -62,3 +62,9 @@ New cases use RFC 6238 SHA-1 reference vectors, session invalidation, TOTP repla
 The tests caught a Flask endpoint-name collision while wiring the backup manager; its endpoints now have distinct names. Browser checks do not enable MFA or backups on the user's demo account. No external SMTP or identity provider is contacted by these tests.
 
 The backup-worker tests also caught request-only audit context access; system audit events now explicitly record a null actor outside HTTP requests. Full backups hard-link immutable blobs/assets in private staging and release the writer lock before streaming archives. SMTP secret/config updates now share the backup snapshot lock.
+
+## Alpha.9 S3 and SFTP storage
+
+57 automated cases pass locally. New tests cover remote file/ZIP streaming, password gates, local spool removal, remote cleanup, full remote-inclusive restore, failed resumable finalization/retry, destination identity guards, mixed local/remote data, backup pins and API redaction. SDK tests exercise Boto3 upload/head/get/delete/head-bucket through Stubber. A real Paramiko loopback server exercises SFTP password authentication, pinned host key, exclusive temporary upload, chmod, rename, stream, repeated deletion and unknown-host rejection. No live external provider or company SFTPGo account is contacted.
+
+Upload completion status now recognizes an already completed file after a lost HTTP response, avoiding duplicate publication on retry. Full backup source records are normalized to local destinations for restore, and object deletion queues/bindings/pins are excluded from the archive. New source/credential examples contain only invalid example hosts and private mount paths.

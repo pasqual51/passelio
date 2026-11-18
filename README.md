@@ -4,7 +4,7 @@
 
 An independent, Docker-first file-sharing project with a French and English interface.
 
-**Status: private alpha, 0.1.0-alpha.8. Not production-ready.** Full Erugo feature parity is not yet reached. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
+**Status: private alpha, 0.1.0-alpha.9. Not production-ready.** Full Erugo feature parity is not yet reached. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
 
 ## Implemented
 
@@ -18,7 +18,8 @@ An independent, Docker-first file-sharing project with a French and English inte
 - Download statistics, editable bilingual account/lifecycle mail templates and opt-in lifecycle notifications.
 - Full backup/verify/offline restore, administration queue, daily/weekly scheduling and retained archive downloads.
 - Expiring links (configurable maximum, up to 365 days), optional share password, revocation and download-request limits.
-- Persistent SQLite database and file storage; global and per-share quotas reserved transactionally.
+- Persistent SQLite database; private local, S3-compatible and SFTP file destinations with per-file routing, streamed downloads, retryable cleanup and remote-inclusive full backups.
+- Global and per-share quotas reserved transactionally.
 - Grouped system settings with help: application name/URL, login message, default language, share expiry/password policies, session lifetime and consistent SQLite export.
 - Separate cleanup worker for expired/revoked files, every five minutes.
 - SMTP settings, verified STARTTLS/SSL, explicit test email, editable French/English templates, per-recipient notifications with automatic CC/BCC, persistent outbox and safe delivery diagnostics.
@@ -26,7 +27,7 @@ An independent, Docker-first file-sharing project with a French and English inte
 
 ## Not implemented yet
 
-Verified self-registration/email changes, per-user quotas, S3, external identity providers (SSO) and antivirus. There is no end-to-end encryption or completed security audit. See [the roadmap](docs/PROJECT.md).
+Verified self-registration/email changes, per-user quotas, external identity providers (SSO) and antivirus. There is no end-to-end encryption or completed security audit. See [the roadmap](docs/PROJECT.md).
 
 ## Try locally with Docker
 
@@ -79,3 +80,7 @@ Read [SECURITY.md](SECURITY.md) and [deployment and backups](docs/DEPLOYMENT.md)
 The reference feature inventory and remaining milestones are tracked in [FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
 The 14 adapted Erugo theme palettes retain their upstream MIT attribution in [third_party](third_party/README.md). Color families and choices are preserved, with contrast adjustments and Passelio-specific rendering.
+
+## Remote storage
+
+Local disk remains active unless explicitly configured. See [STORAGE.md](docs/STORAGE.md) for S3/SFTP configuration, mounted credential files, strict SFTP host-key verification, private bucket requirements and full-backup behavior. The storage administration page shows the current destinations and provides read-only connection checks. No existing installation or live provider has been configured automatically.

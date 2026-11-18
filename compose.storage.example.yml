@@ -1,0 +1,13 @@
+# Optional override: copy an example JSON to secrets/storage/config.json first.
+# Both processes must receive the same configuration and credential mounts.
+services:
+  app:
+    environment:
+      STORAGE_CONFIG_FILE: /run/storage/config.json
+    volumes:
+      - ./secrets/storage:/run/storage:ro
+  cleanup:
+    environment:
+      STORAGE_CONFIG_FILE: /run/storage/config.json
+    volumes:
+      - ./secrets/storage:/run/storage:ro

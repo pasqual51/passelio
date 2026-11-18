@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    image: passelio:0.1.0-alpha.8
+    image: passelio:0.1.0-alpha.9
     restart: unless-stopped
     init: true
     ports:
@@ -28,7 +28,7 @@ services:
     mem_limit: 512m
     pids_limit: 128
   cleanup:
-    image: passelio:0.1.0-alpha.8
+    image: passelio:0.1.0-alpha.9
     restart: unless-stopped
     init: true
     command: ["python", "worker.py"]

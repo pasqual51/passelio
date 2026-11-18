@@ -4,7 +4,7 @@ python backup.py create --data /data --output /backup/passelio.zip
 python backup.py verify --archive /backup/passelio.zip
 python backup.py restore --archive /backup/passelio.zip --target /new-data
 """
-from contextlib import closing
+from contextlib import closing, contextmanager
 import argparse
 import hashlib
 import json
@@ -12,6 +12,8 @@ import os
 from pathlib import Path
 import re
 import shutil
+import secrets
+import time
 import sqlite3
 import tempfile
 import zipfile
@@ -20,12 +22,31 @@ FORMAT=1
 SAFE=re.compile(r'^(passelio\.sqlite|smtp-password|account-signing-key|files/[a-f0-9]{48}|branding/[a-f0-9]{48}\.png|mfa-secrets/[a-f0-9]{48})$')
 
 
-def create(data,output):
+@contextmanager
+def pin_lifetime(data,pin):
+    try:yield
+    finally:
+        try:
+            with closing(sqlite3.connect(data/'passelio.sqlite',timeout=30)) as c:
+                if c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='storage_pins'").fetchone():
+                    c.execute('DELETE FROM storage_pins WHERE pin=?',(pin,));c.commit()
+        except (sqlite3.Error,OSError):pass  # A crashed/failed cleanup pin expires after 24 hours.
+
+
+def create(data,output,storage=None):
     data,output=Path(data).resolve(),Path(output).absolute()
     if output.exists():raise ValueError('Output already exists')
     if not (data/'passelio.sqlite').is_file():raise ValueError('Database missing')
     output.parent.mkdir(parents=True,exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='.backup-',dir=output.parent) as folder, \
+    pin=secrets.token_hex(24)
+    if storage is None:
+        with closing(sqlite3.connect(data/'passelio.sqlite')) as c:
+            columns={r[1] for r in c.execute('PRAGMA table_info(files)')}
+            remote='storage' in columns and c.execute("SELECT 1 FROM files WHERE storage!='local' LIMIT 1").fetchone()
+        if remote:
+            from blobstore import storage_for_backup
+            storage=storage_for_backup(data)
+    with pin_lifetime(data,pin), tempfile.TemporaryDirectory(prefix='.backup-',dir=output.parent) as folder, \
          tempfile.TemporaryDirectory(prefix='.backup-snapshot-',dir=data) as snapshot_folder:
         folder,snapshot_folder=Path(folder),Path(snapshot_folder)
         snapshot=snapshot_folder/'passelio.sqlite'
@@ -45,9 +66,17 @@ def create(data,output):
                 if 'mfa_factors' in tables:target.execute('UPDATE mfa_factors SET pending_id=NULL,pending_expires=0')
                 if 'backup_schedule' in tables:target.execute('UPDATE backup_schedule SET enabled=0,requested=0,lease_until=0')
                 if 'backup_archives' in tables:target.execute('DELETE FROM backup_archives')
+                if 'storage_bindings' in tables:target.execute("DELETE FROM storage_bindings WHERE name!='local'")
+                if 'storage_deletions' in tables:target.execute('DELETE FROM storage_deletions')
+                if 'storage_pins' in tables:target.execute('DELETE FROM storage_pins')
+                if 'storage' in {r[1] for r in target.execute('PRAGMA table_info(files)')}:target.execute("UPDATE files SET storage='local',object_id=NULL")
                 target.commit()
             finally:target.close();reader.close()
-            sources=[('files/'+r['id'],data/'files'/r['id']) for r in lock.execute('SELECT id FROM files WHERE ready=1')]
+            file_rows=[dict(r) for r in lock.execute('SELECT * FROM files WHERE ready=1')]
+            remote_rows=[r for r in file_rows if r.get('storage','local')!='local']
+            sources=[('files/'+r['id'],data/'files'/r['id']) for r in file_rows if r.get('storage','local')=='local']
+            for row in remote_rows:
+                lock.execute('INSERT INTO storage_pins VALUES(?,?,?,?)',(pin,row['storage'],row['object_id'],int(time.time())+86400))
             sources += [('branding/'+r['id']+'.png',data/'branding'/(r['id']+'.png')) for r in lock.execute('SELECT id FROM branding_assets')]
             if 'mfa_factors' in tables:
                 sources += [('mfa-secrets/'+r['secret_id'],data/'mfa-secrets'/r['secret_id']) for r in lock.execute('SELECT secret_id FROM mfa_factors WHERE enabled=1')]
@@ -64,15 +93,22 @@ def create(data,output):
                     if source.is_symlink():raise ValueError('Unsafe secret file')
                     path=snapshot_folder/name;shutil.copyfile(source,path);os.chmod(path,0o600)
                     paths.append((name,path))
+            lock.commit()
         finally:lock.rollback();lock.close()
-        required=sum(path.stat().st_size for _,path in paths)
+        paths += [('files/'+r['id'],r) for r in remote_rows]
+        required=sum(path['size'] if isinstance(path,dict) else path.stat().st_size for _,path in paths)
         if shutil.disk_usage(output.parent).free<required+64*1024**2:raise ValueError('Not enough backup disk space')
         archive=folder/'backup.zip';manifest={}
         with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_STORED,allowZip64=True) as z:
             for name,path in paths:
                 digest=hashlib.sha256();size=0
-                with path.open('rb') as src,z.open(name,'w',force_zip64=True) as dst:
-                    while chunk:=src.read(1024**2):dst.write(chunk);digest.update(chunk);size+=len(chunk)
+                source=storage.open(path) if isinstance(path,dict) else path.open('rb')
+                with closing(source) as src,z.open(name,'w',force_zip64=True) as dst:
+                    while chunk:=src.read(1024**2):
+                        size+=len(chunk)
+                        if isinstance(path,dict) and size>path['size']:raise ValueError('Remote blob size mismatch')
+                        dst.write(chunk);digest.update(chunk)
+                if isinstance(path,dict) and (size!=path['size'] or digest.hexdigest()!=path['sha256']):raise ValueError('Remote blob checksum mismatch')
                 manifest[name]={'size':size,'sha256':digest.hexdigest()}
             z.writestr('manifest.json',json.dumps({'format':FORMAT,'files':manifest}))
         os.chmod(archive,0o600)

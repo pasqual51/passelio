@@ -20,7 +20,7 @@ def test_resumable_roundtrip_offsets_quota_and_paths(app):
     assert c.post('/api/uploads/'+fid+'/complete',headers=h).json['sha256']==hashlib.sha256(b'hello world').hexdigest()
     result=app.test_client().get(f'/api/public/{sid}/files/{fid}')
     assert result.data==b'hello world';result.close()
-    assert c.get('/api/uploads/'+fid).status_code==404
+    assert c.get('/api/uploads/'+fid).json['completed']
     archive=app.test_client().get(f'/api/public/{sid}/archive')
     assert archive.status_code==200
     with zipfile.ZipFile(io.BytesIO(archive.data)) as z:

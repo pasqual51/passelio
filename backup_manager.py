@@ -73,7 +73,7 @@ def init_backup_manager(app,db,root,protected,fail,audit,rate_limit):
                       (now+86400,now+settings['interval_hours']*3600))
         name='passelio-'+str(now)+'-'+secrets.token_hex(6)+'.zip';path=destination/name
         try:
-            create(root,path)
+            create(root,path,storage=app.storage)
             verify(path)
             size=path.stat().st_size
         except Exception:

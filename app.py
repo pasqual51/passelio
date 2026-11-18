@@ -26,6 +26,7 @@ from insights import init_insights
 from requests_upload import init_upload_requests
 from mfa import init_mfa
 from backup_manager import init_backup_manager
+from blobstore import init_storage, StorageUnavailable
 
 
 def create_app(config=None):
@@ -171,9 +172,10 @@ def create_app(config=None):
     def cleanup():
         # Explicit CLI task: a single transaction prevents quota/cleanup races.
         with db(True) as c:
-            rows = c.execute("SELECT files.id FROM files JOIN shares ON shares.id=files.share_id "
+            rows = c.execute("SELECT files.* FROM files JOIN shares ON shares.id=files.share_id "
                              "WHERE shares.revoked=1 OR shares.expires<=?", (time.time(),)).fetchall()
             for row in rows:
+                app.storage.queue_delete(c,row)
                 (blobs / row["id"]).unlink(missing_ok=True)
                 c.execute("DELETE FROM files WHERE id=?", (row["id"],))
             c.execute("DELETE FROM sessions WHERE expires<=?", (time.time(),))
@@ -187,7 +189,7 @@ def create_app(config=None):
 
     @app.cli.command("cleanup")
     def cleanup_command():
-        print(f"Removed {cleanup()} expired/revoked files")
+        print(f"Removed {app.cleanup()} expired/revoked files")
 
     @app.before_request
     def check_origin():
@@ -228,7 +230,7 @@ def create_app(config=None):
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="0.1.0-alpha.8")
+        return jsonify(status="ok", version="0.1.0-alpha.9")
 
     @app.get('/api/config')
     def public_config():
@@ -369,7 +371,8 @@ def create_app(config=None):
             limits=current_limits(c)
             if share_size+size > limits['SHARE_LIMIT'] or total+size > limits['STORAGE_LIMIT'] or shutil.disk_usage(root).free < size+64*1024**2:
                 return fail("quota", 413)
-            c.execute("INSERT INTO files(id,share_id,name,size,created) VALUES(?,?,?,?,?)", (fid,sid,name,size,int(time.time())))
+            c.execute("INSERT INTO files(id,share_id,name,size,created,storage) VALUES(?,?,?,?,?,?)", (fid,sid,name,size,int(time.time()),app.storage.default))
+        stored=None
         try:
             written, digest = 0, hashlib.sha256()
             with (blobs/fid).open("xb") as f:
@@ -381,17 +384,24 @@ def create_app(config=None):
                     digest.update(chunk)
             if written != size:
                 raise ValueError("size mismatch")
+            with db(True) as c:stored=app.storage.allocate(c,fid)
+            app.storage.put(stored,blobs/fid,digest.hexdigest())
             with db(True) as c:
                 share = c.execute("SELECT * FROM shares WHERE id=?", (sid,)).fetchone()
-                if not available(c,share):
+                current=c.execute("SELECT object_id FROM files WHERE id=?",(fid,)).fetchone()
+                if not available(c,share) or not current or current["object_id"]!=stored["object_id"]:
                     raise ValueError("share expired")
                 c.execute("UPDATE files SET sha256=?,ready=1 WHERE id=?", (digest.hexdigest(),fid))
                 audit(c,"file.uploaded",fid)
-        except Exception:
+        except Exception as exc:
             (blobs/fid).unlink(missing_ok=True)
             with db(True) as c:
+                if stored:app.storage.queue_delete(c,stored)
                 c.execute("DELETE FROM files WHERE id=?", (fid,))
-            return fail("upload_failed", 400)
+            return fail('storage_unavailable' if isinstance(exc,StorageUnavailable) else 'upload_failed',503 if isinstance(exc,StorageUnavailable) else 400)
+        if stored['storage']!='local':
+            try:(blobs/fid).unlink(missing_ok=True)
+            except OSError:pass
         return jsonify(id=fid,sha256=digest.hexdigest()), 201
 
     @app.delete("/api/shares/<sid>")
@@ -443,7 +453,7 @@ def create_app(config=None):
             if not unlocked(c,s):
                 return fail("locked",403)
             f=c.execute("SELECT * FROM files WHERE id=? AND share_id=? AND ready=1",(fid,sid)).fetchone()
-            if not f or not (blobs/fid).is_file():
+            if not f:
                 return fail("not_found",404)
             if s["max_downloads"] and s["downloads"]>=s["max_downloads"]:
                 return fail("download_limit",410)
@@ -451,7 +461,12 @@ def create_app(config=None):
                 c.execute("UPDATE shares SET downloads=downloads+1 WHERE id=?",(sid,))
                 audit(c,"file.downloaded",fid)
                 app.schedule_notification(c,s,"download")
-            return send_file(blobs/fid,as_attachment=True,download_name=f["name"],mimetype="application/octet-stream",conditional=False)
+            stream=app.storage.open(f)
+            try:
+                response=send_file(stream,as_attachment=True,download_name=f["name"],mimetype="application/octet-stream",conditional=False)
+                response.content_length=f['size'];response.call_on_close(stream.close)
+                return response
+            except Exception:stream.close();raise
 
     @app.get('/api/public/<sid>/archive')
     def archive(sid):
@@ -473,7 +488,8 @@ def create_app(config=None):
                         if not valid_name(name):raise ValueError('Invalid archive name')
                         if name in seen:name=row['id']+'/'+name
                         seen.add(name)
-                        z.write(blobs/row['id'],name)
+                        with app.storage.open(row) as source,z.open(name,'w',force_zip64=True) as destination:
+                            shutil.copyfileobj(source,destination,1024**2)
                 stream.seek(0)
                 if request.method!='HEAD':
                     c.execute('UPDATE shares SET downloads=downloads+1 WHERE id=?',(sid,))
@@ -504,7 +520,7 @@ def create_app(config=None):
                         files=c.execute('SELECT count(*) FROM files WHERE ready=1').fetchone()[0],
                         used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0],
                         cleanup_bytes=c.execute('SELECT coalesce(sum(size),0) FROM files JOIN shares ON shares.id=files.share_id WHERE revoked=1 OR expires<=?',(time.time(),)).fetchone()[0],
-                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.8')
+                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.9')
         return jsonify(result)
 
     @app.get('/api/admin/users')
@@ -709,6 +725,7 @@ def create_app(config=None):
         with db(True) as c:audit(c,'database.exported')
         return send_file(io.BytesIO(data),as_attachment=True,download_name='passelio-database-'+time.strftime('%Y%m%d-%H%M%S',time.gmtime())+'.sqlite',mimetype='application/octet-stream')
 
+    init_storage(app,db,root,protected,fail,rate_limit)
     init_transfers(app,db,root,blobs,protected,fail,audit,current_limits)
     init_upload_requests(app,db,protected,fail,audit,rate_limit)
     init_accounts(app,db,root,protected,fail,audit,rate_limit)

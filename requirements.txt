@@ -8,3 +8,17 @@ blinker==1.9.0
 gunicorn==27.0.1
 packaging==26.3
 Pillow==13.0.0
+boto3==1.44.5
+botocore==1.44.5
+jmespath==1.1.0
+s3transfer==0.19.3
+paramiko==5.1.0
+bcrypt==5.0.0
+cryptography==50.0.2
+invoke==3.0.3
+PyNaCl==1.6.2
+python-dateutil==2.9.0.post0
+urllib3==2.8.0
+cffi==2.1.1
+pycparser==3.12
+six==1.17.0

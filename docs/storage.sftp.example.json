@@ -1,0 +1,11 @@
+{
+  "default": "sftp",
+  "sftp": {
+    "host": "sftp.example.invalid",
+    "port": 22,
+    "username": "passelio",
+    "root": "/passelio",
+    "known_hosts_file": "/run/storage/known_hosts",
+    "private_key_file": "/run/storage/id_ed25519"
+  }
+}

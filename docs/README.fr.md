@@ -19,7 +19,7 @@ Pour HTTPS, le reverse proxy et les sauvegardes, consulter [DEPLOYMENT.md](DEPLO
 
 ## Limites de cette version
 
-Cette alpha n'est pas prête pour la production. Les dossiers/ZIP, la reprise des transferts authentifiés, les demandes de dépôt, les invitations/récupérations de compte, la double authentification TOTP et les sauvegardes planifiées sont disponibles. Les quotas par utilisateur, S3, SSO, la vérification/changement d’adresse e-mail et l’antivirus restent à développer. La parité complète avec Erugo n'est pas atteinte.
+Cette alpha n'est pas prête pour la production. Les dossiers/ZIP, la reprise des transferts authentifiés, les demandes de dépôt, les invitations/récupérations de compte, la double authentification TOTP et les sauvegardes planifiées sont disponibles. Les quotas par utilisateur, SSO, la vérification/changement d’adresse e-mail et l’antivirus restent à développer. La parité complète avec Erugo n'est pas atteinte.
 
 La limite de téléchargements compte chaque requête de fichier, pas les personnes ni les partages complets. Après une interruption d’un envoi authentifié, sélectionnez les mêmes fichiers et réessayez pour reprendre ; les morceaux déjà transmis sont vérifiés. Les dépôts externes recommencent actuellement depuis le début. Les réservations incomplètes sont nettoyées après 24 heures d’inactivité. Le quota ne remplace pas la surveillance de l'espace disque réel.
 
@@ -75,3 +75,7 @@ Les thèmes sombres règlent aussi le texte, les champs, les cartes et les table
 La double authentification se configure volontairement dans Mon profil, avec une application TOTP et dix codes de secours à conserver immédiatement. L’activation/désactivation ferme les sessions existantes. La récupération par mail ne contourne pas le second facteur.
 
 Les sauvegardes complètes se demandent et se planifient dans Administration → Paramètres du système → Sauvegarde de la base. Les archives incluent les secrets de l’installation : conservez-les en privé et copiez-les vers un stockage indépendant chiffré. La planification est désactivée par défaut. Le volume passelio_backups est séparé logiquement des données, mais demeure sur le même hôte Docker. La restauration se fait hors ligne via backup.py vers un nouveau dossier. Consultez DEPLOYMENT.md avant l’activation.
+
+## Stockage S3 et SFTP
+
+Le disque local reste la destination par défaut. Les fichiers peuvent également être stockés dans un bucket S3 compatible ou sur un serveur SFTP, notamment SFTPGo. Chaque fichier conserve sa destination, et la sauvegarde complète inclut les fichiers distants pour une restauration locale indépendante. L’administration affiche les destinations et permet de vérifier la connexion. Les identifiants restent dans des fichiers montés par l’administrateur du serveur. Consultez [STORAGE.md](STORAGE.md) et les exemples JSON avant de configurer une destination. Aucun compte SFTP ni bucket existant n’a été modifié automatiquement.

@@ -33,10 +33,16 @@ Each area requires backend enforcement, bilingual labels, authorization tests, p
 
 Delivered: account invitations/recovery/profile names, opt-in lifecycle email and templates, statistics, folder/ZIP transfer, upload-only requests, resumable uploads and full backup/restore CLI. New APIs and UI are loaded together by a running process: static edits become visible only after restart, preventing frontend/backend mismatch.
 
-Not yet implemented: OIDC (Microsoft/Google), S3, verified self-registration/email change and production release. AGPL v3 has been recommended to the owner; no license choice or publication is implied by that recommendation. Do not represent this alpha as feature-complete or ready for public production.
+Not yet implemented: OIDC (Microsoft/Google), verified self-registration/email change and production release. AGPL v3 has been recommended to the owner; no license choice or publication is implied by that recommendation. Do not represent this alpha as feature-complete or ready for public production.
 
 ## Alpha.8 security and backup automation (18 November 2026)
 
 Optional TOTP enrollment requires password reauthentication and a valid authenticator code. Authentication is replay-protected atomically across concurrent workers, with ten hashed single-use recovery codes and session revocation on enable/disable. Email password recovery does not bypass MFA. Secrets are separate private files and are included only in full backups, not database exports. Account email change, SSO and self-registration remain pending.
 
 Full backups can now be queued from administration or scheduled daily/weekly, with 1–14 retained verified archives, safe failure status and authenticated downloads. The worker creates archives; automated backups default to disabled. Restore stays offline into a new directory and resets the schedule. Backups are not encrypted and must be copied to independent protected storage for disaster recovery.
+
+## Alpha.9 remote storage (18 November 2026)
+
+Local, S3-compatible and SFTP backends are integrated with persisted per-file destinations, bounded local upload spools, resumed finalization, streaming downloads/ZIP, private credentials, strict HTTPS/SSH-host-key validation, destination identity guards and deferred deletion retries. Full backups pin active remote objects, copy their bytes with size/SHA-256 validation and normalize restored file records to local storage. Remote credentials are not included in archives. Storage configuration is deployment-owned JSON with mounted secret files; the UI exposes only destination names/counts/default and read-only connection checks. Local remains active in the preview.
+
+CI uses a real loopback SFTP server, AWS SDK stubbed operations and application-level adapters for quota, failure/retry, ZIP, cleanup, mixed destinations, identity changes, backup pinning and independent restore. AWS/Scaleway/MinIO endpoints and a live SFTPGo account have not been exercised or changed. Validate a chosen provider before production. SSO, verified email change/self-registration, richer HTML emails, public packaging and independent security/load review remain pending.
