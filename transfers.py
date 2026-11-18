@@ -41,7 +41,9 @@ def init_transfers(app, db, root, blobs, protected, fail, audit, limits):
         if not valid_name(name) or type(size) is not int or size <= 0:
             return fail('invalid_input')
         fid = secrets.token_hex(24)
+        storage=app.storage;backend=storage.default
         with db(True) as c:
+            storage.ensure_binding(c,backend)
             share = c.execute('SELECT * FROM shares WHERE id=? AND owner=? AND revoked=0 AND expires>?',
                               (sid, g.user['id'], time.time())).fetchone()
             if not share:
@@ -52,7 +54,7 @@ def init_transfers(app, db, root, blobs, protected, fail, audit, limits):
             if used + size > cap['STORAGE_LIMIT'] or share_used + size > cap['SHARE_LIMIT'] or shutil.disk_usage(root).free < size + 64 * 1024**2:
                 return fail('quota', 413)
             c.execute('INSERT INTO files(id,share_id,name,size,created,storage) VALUES(?,?,?,?,?,?)',
-                      (fid,sid,name,size,int(time.time()),app.storage.default))
+                      (fid,sid,name,size,int(time.time()),backend))
             c.execute('INSERT INTO uploads(id,owner,offset,expires) VALUES(?,?,0,?)',(fid,g.user['id'],int(time.time())+86400))
         return jsonify(id=fid,offset=0,chunk_size=8*1024**2),201
 

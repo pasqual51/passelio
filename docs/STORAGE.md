@@ -1,8 +1,20 @@
 # File storage: local, S3 and SFTP
 
-Local disk remains the default. A private operator-mounted JSON file selects the destination for new files. Each file records its destination; switching the default does not move existing data. Multiple configured destinations may coexist. Do not remove or change a destination while it contains application files or queued object deletions: startup rejects that change. This release does not provide automatic migration between destinations.
+Local disk remains the default. The administration interface selects and configures the destination for new files; an operator-mounted JSON remains an optional initial configuration. Each file records its destination; switching the default does not move existing data. Multiple configured destinations may coexist. Do not remove or change a destination while it contains application files or queued object deletions: startup rejects that change. This release does not provide automatic migration between destinations.
 
-## Configure an installation
+## Configure from the interface (alpha.10)
+
+Open Administration → Storage. The default selector chooses the destination of new uploads. Unconfigured remote destinations remain disabled until their settings are saved. Open Configure S3 or Configure SFTP, enter the required fields, confirm your current password and add an unused authenticator/recovery code if MFA is enabled. Test and save settings performs a read-only connection check before committing; it does not create a remote file or prove write permission. The optional checkbox makes that destination the default immediately. A failed check leaves the prior settings unchanged.
+
+S3 fields include HTTPS endpoint (blank for AWS), region, bucket, prefix, addressing style, role authentication or access-key credentials, and an optional temporary session token. SFTP fields include host, port, username, absolute directory as seen by the SFTP account, verified server public SSH key, and password or private-key/passphrase authentication. Obtain the server public key through a trusted channel; Passelio does not fetch-and-trust unknown keys. The directory must exist beforehand. Original filenames are never remote paths.
+
+Leave saved secret fields blank to retain their values. The interface only returns presence flags, not passwords, keys or passphrases. A new private key requires its own passphrase if encrypted; an old passphrase is not silently applied to a replacement key. Explicit checkboxes remove a saved temporary S3 token or saved passphrase (the latter requires a usable unencrypted key). A destination with files, queued deletion or active backup pins cannot change its identity (server/account/directory or endpoint/region/bucket/prefix); valid credentials may be rotated for the same identity. Existing files are never migrated by changing the default.
+
+Settings are revisioned in SQLite, while credentials are in private generation directories under DATA_DIR/storage-secrets, mode 700 for directories and 600 for files. They are not encrypted at rest: protect DATA_DIR and use HTTPS for administration outside local development. Unreferenced old secret generations are removed after seven days; an in-use generation is retained. Web processes check revisions before each request and the worker refreshes each cycle, so no Docker restart is required for interface changes. Stale concurrent edits are rejected, and old process snapshots cannot reserve or read files against a replaced destination binding.
+
+Interface settings take precedence over operator-mounted settings. A mounted initial configuration can be viewed and edited from the interface; saving that provider copies its retained credentials into application-managed files. A default-only change retains any existing mounted credential references, so those mounts must stay available until the providers are resaved. Never remove mounts still referenced by active settings.
+
+## Optional operator-mounted initial configuration
 
 1. Copy either storage.s3.example.json or storage.sftp.example.json into secrets/storage/config.json and replace the example values. You may include both the s3 and sftp sections and choose one default: local, s3 or sftp.
 2. Place referenced credential and trust files in secrets/storage. On Linux, use a directory owned by container UID 10001 with mode 700 and credential files owned by that UID with mode 600. On Windows, protect the folder with ACLs and verify that the container user can read it. Never commit these files.
@@ -12,7 +24,7 @@ Local disk remains the default. A private operator-mounted JSON file selects the
 docker compose -f compose.yml -f compose.storage.example.yml up -d --build
 ```
 
-For non-Compose deployments, set STORAGE_CONFIG_FILE to the JSON file path and mount it and its referenced files read-only into both app and worker. No credential is entered or returned through the storage administration API. The page Administration → Storage shows configured destinations, the default, file counts and queued remote deletions. Its connection test is read-only; it does not prove upload/delete permissions.
+For non-Compose deployments, set STORAGE_CONFIG_FILE to the JSON file path and mount it and its referenced files read-only into both app and worker. Advanced mounted credentials are not returned through the storage administration API. Interface-managed credentials are entered over the administration connection and saved in private application files. The page Administration → Storage configures destinations and shows the default, file counts and queued remote deletions. Its connection test is read-only; it does not prove upload/delete permissions.
 
 Do not point another installation at the same managed namespace unless you understand the lifecycle implications. Keep separate buckets/prefixes or SFTP account roots for independent installations. Database-only exports are not complete remote-data backups.
 
@@ -46,4 +58,4 @@ All downloads pass through Passelio authorization/password/expiry/download-limit
 
 Full backups include remote file bytes, not just remote object names. Active remote objects are pinned while the snapshot is copied, and the backup validates their size and SHA-256. Pins from a crashed backup expire after 24 hours. Run the CLI with the same STORAGE_CONFIG_FILE and credential mounts as the application, or use the administration worker.
 
-The archive normalizes file records to local storage and excludes remote deletion queues, bindings and active pins. Offline restore therefore produces a self-contained local data directory and does not delete anything in the original remote destination. Reconfigure remote storage explicitly afterward for new files if desired. Backups require enough free space for the complete archive even when the live files are remote. Archives include private application secrets and are not encrypted by Passelio; keep independent encrypted backups.
+The archive normalizes file records to local storage and excludes remote deletion queues, bindings, active pins and saved interface storage settings/credentials. Offline restore therefore produces a self-contained local data directory and does not delete anything in the original remote destination. Reconfigure remote storage explicitly afterward for new files if desired. Backups require enough free space for the complete archive even when the live files are remote. Archives include private application secrets and are not encrypted by Passelio; keep independent encrypted backups.

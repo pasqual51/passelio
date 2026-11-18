@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import secrets
 import time
+import threading
 from urllib.parse import urlsplit
 
 from flask import jsonify
@@ -16,6 +17,10 @@ OID=re.compile(r'^[a-f0-9]{48}$')
 
 
 class StorageUnavailable(Exception):
+    pass
+
+
+class StorageRevisionChanged(ValueError):
     pass
 
 
@@ -145,7 +150,7 @@ class SFTP:
 
 
 class BlobStore:
-    def __init__(self,root,db,config=None,adapters=None):
+    def __init__(self,root,db,config=None,adapters=None,expected_revision=None):
         self.root=Path(root);self.db=db;self.backends={'local':Local(root)}
         config=config or {'default':'local'}
         if not isinstance(config,dict) or set(config)-{'default','s3','sftp'}:raise ValueError('Invalid storage configuration')
@@ -155,6 +160,10 @@ class BlobStore:
         if adapters:self.backends.update(adapters)
         if self.default not in self.backends:raise ValueError('Storage backend is not configured')
         with db(True) as c:
+            if expected_revision is not None:
+                exists=c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='storage_settings'").fetchone()
+                revision=c.execute('SELECT revision FROM storage_settings WHERE id=1').fetchone() if exists else None
+                if (revision['revision'] if revision else 'deployment')!=expected_revision:raise StorageRevisionChanged()
             columns={r['name'] for r in c.execute('PRAGMA table_info(files)')}
             if 'storage' not in columns:c.execute("ALTER TABLE files ADD COLUMN storage TEXT NOT NULL DEFAULT 'local'")
             if 'object_id' not in columns:c.execute('ALTER TABLE files ADD COLUMN object_id TEXT')
@@ -168,11 +177,16 @@ class BlobStore:
                 previous=c.execute('SELECT identity FROM storage_bindings WHERE name=?',(name,)).fetchone()
                 if previous and previous['identity']!=identity and name in used:raise ValueError('Cannot change a storage destination while it contains application data')
                 c.execute('INSERT INTO storage_bindings VALUES(?,?) ON CONFLICT(name) DO UPDATE SET identity=excluded.identity',(name,identity))
+    def ensure_binding(self,c,name):
+        previous=c.execute('SELECT identity FROM storage_bindings WHERE name=?',(name,)).fetchone()
+        if name not in self.backends or not previous or previous['identity']!=json.dumps(self.backends[name].identity,sort_keys=True):raise StorageUnavailable()
+
     def queue_delete(self,c,row):
         if row['storage']!='local' and row['object_id']:
             c.execute('INSERT OR IGNORE INTO storage_deletions(backend,object_id,created) VALUES(?,?,?)',(row['storage'],row['object_id'],int(time.time())))
     def allocate(self,c,fid):
         row=c.execute('SELECT * FROM files WHERE id=?',(fid,)).fetchone()
+        self.ensure_binding(c,row['storage'])
         self.queue_delete(c,row)
         oid=fid if row['storage']=='local' else secrets.token_hex(24)
         c.execute('UPDATE files SET object_id=? WHERE id=?',(oid,fid))
@@ -193,6 +207,7 @@ class BlobStore:
             with self.db(True) as c:
                 row=c.execute('SELECT * FROM storage_deletions WHERE created<=? AND lease<=? ORDER BY created LIMIT 1',(now-60,now)).fetchone()
                 if not row:break
+                self.ensure_binding(c,row['backend'])
                 c.execute('UPDATE storage_deletions SET lease=? WHERE backend=? AND object_id=?',(now+300,row['backend'],row['object_id']))
                 c.execute('DELETE FROM storage_pins WHERE expires<=?',(now,))
                 if c.execute('SELECT 1 FROM storage_pins WHERE backend=? AND object_id=? AND expires>?',(row['backend'],row['object_id'],now)).fetchone():continue
@@ -216,9 +231,33 @@ def configuration(config=None):
     return json.loads(Path(path).read_text(encoding='utf-8'))
 
 
-def init_storage(app,db,root,protected,fail,rate_limit):
+def runtime_configuration(db,config=None):
+    with db() as c:
+        exists=c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='storage_settings'").fetchone()
+        row=c.execute('SELECT value,revision FROM storage_settings WHERE id=1').fetchone() if exists else None
+    if row:return json.loads(row['value']),row['revision']
+    return configuration(config),'deployment'
+
+
+def init_storage(app,db,root,protected,fail,audit,rate_limit):
     adapters=app.config.get('STORAGE_ADAPTERS') if app.testing else None
-    app.storage=BlobStore(root,db,configuration(app.config),adapters)
+    with db() as c:c.execute('CREATE TABLE IF NOT EXISTS storage_settings(id INTEGER PRIMARY KEY CHECK(id=1),value TEXT NOT NULL,revision TEXT NOT NULL)')
+    lock=threading.RLock();app._storage_revision=None
+    def refresh():
+        with lock:
+            for _ in range(3):
+                cfg,revision=runtime_configuration(db,app.config)
+                if revision==app._storage_revision:return
+                try:updated=BlobStore(root,db,cfg,adapters,expected_revision=revision)
+                except StorageRevisionChanged:continue
+                app.storage=updated;app._storage_revision=revision;return
+            raise StorageUnavailable()
+    app.refresh_storage=refresh
+    refresh()
+    @app.before_request
+    def refresh_storage_configuration():refresh()
+    from storage_gui import init_storage_gui
+    init_storage_gui(app,db,root,protected,fail,audit,rate_limit)
     @app.errorhandler(StorageUnavailable)
     def unavailable(error):return fail('storage_unavailable',503)
     @app.get('/api/admin/storage-backends')
@@ -249,4 +288,5 @@ def storage_for_backup(root):
             yield connection;connection.commit()
         except Exception:connection.rollback();raise
         finally:connection.close()
-    return BlobStore(root,db,configuration())
+    cfg,revision=runtime_configuration(db)
+    return BlobStore(root,db,cfg,expected_revision=revision)

@@ -4,7 +4,7 @@
 
 An independent, Docker-first file-sharing project with a French and English interface.
 
-**Status: private alpha, 0.1.0-alpha.9. Not production-ready.** Full Erugo feature parity is not yet reached. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
+**Status: private alpha, 0.1.0-alpha.10. Not production-ready.** Full Erugo feature parity is not yet reached. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
 
 ## Implemented
 
@@ -83,4 +83,4 @@ The 14 adapted Erugo theme palettes retain their upstream MIT attribution in [th
 
 ## Remote storage
 
-Local disk remains active unless explicitly configured. See [STORAGE.md](docs/STORAGE.md) for S3/SFTP configuration, mounted credential files, strict SFTP host-key verification, private bucket requirements and full-backup behavior. The storage administration page shows the current destinations and provides read-only connection checks. No existing installation or live provider has been configured automatically.
+Local disk remains active unless explicitly changed. Choose and configure local, S3 or SFTP from Administration → Storage. Remote settings are tested before saving, with password reauthentication and a second factor when enabled. Stored credentials are never returned by the API; blank secret fields preserve them. Changes are picked up by the web processes and worker without a Docker restart. See [STORAGE.md](docs/STORAGE.md) for server-key verification, private bucket requirements, credential protection, backup behavior and optional operator-mounted configuration. No existing live provider has been configured automatically.

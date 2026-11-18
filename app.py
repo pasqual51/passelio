@@ -198,7 +198,7 @@ def create_app(config=None):
         elif request.method=='PATCH' and (request.path.startswith('/api/uploads/') or request.path.startswith('/api/requests/')):
             request.max_content_length=8*1024**2
         elif not (request.method == 'POST' and request.path.startswith('/api/shares/') and request.path.endswith('/files')):
-            request.max_content_length = 65536 if request.path=='/api/admin/mail/settings' else 16384
+            request.max_content_length = 65536 if request.path=='/api/admin/mail/settings' or request.path.startswith('/api/admin/storage-configuration/') else 16384
         else:
             request.max_content_length = current_limits()['SHARE_LIMIT']
         if request.method not in ("GET", "HEAD", "OPTIONS"):
@@ -230,7 +230,7 @@ def create_app(config=None):
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="0.1.0-alpha.9")
+        return jsonify(status="ok", version="0.1.0-alpha.10")
 
     @app.get('/api/config')
     def public_config():
@@ -362,7 +362,9 @@ def create_app(config=None):
         if size is None or size <= 0 or not valid_name(name):
             return fail("invalid_input")
         fid = secrets.token_hex(24)
+        storage=app.storage;backend=storage.default
         with db(True) as c:
+            storage.ensure_binding(c,backend)
             share = c.execute("SELECT * FROM shares WHERE id=? AND owner=?", (sid,g.user["id"])).fetchone()
             if not available(c, share):
                 return fail("not_found", 404)
@@ -371,7 +373,7 @@ def create_app(config=None):
             limits=current_limits(c)
             if share_size+size > limits['SHARE_LIMIT'] or total+size > limits['STORAGE_LIMIT'] or shutil.disk_usage(root).free < size+64*1024**2:
                 return fail("quota", 413)
-            c.execute("INSERT INTO files(id,share_id,name,size,created,storage) VALUES(?,?,?,?,?,?)", (fid,sid,name,size,int(time.time()),app.storage.default))
+            c.execute("INSERT INTO files(id,share_id,name,size,created,storage) VALUES(?,?,?,?,?,?)", (fid,sid,name,size,int(time.time()),backend))
         stored=None
         try:
             written, digest = 0, hashlib.sha256()
@@ -461,7 +463,8 @@ def create_app(config=None):
                 c.execute("UPDATE shares SET downloads=downloads+1 WHERE id=?",(sid,))
                 audit(c,"file.downloaded",fid)
                 app.schedule_notification(c,s,"download")
-            stream=app.storage.open(f)
+            storage=app.storage;storage.ensure_binding(c,f['storage'])
+            stream=storage.open(f)
             try:
                 response=send_file(stream,as_attachment=True,download_name=f["name"],mimetype="application/octet-stream",conditional=False)
                 response.content_length=f['size'];response.call_on_close(stream.close)
@@ -488,7 +491,8 @@ def create_app(config=None):
                         if not valid_name(name):raise ValueError('Invalid archive name')
                         if name in seen:name=row['id']+'/'+name
                         seen.add(name)
-                        with app.storage.open(row) as source,z.open(name,'w',force_zip64=True) as destination:
+                        storage=app.storage;storage.ensure_binding(c,row['storage'])
+                        with storage.open(row) as source,z.open(name,'w',force_zip64=True) as destination:
                             shutil.copyfileobj(source,destination,1024**2)
                 stream.seek(0)
                 if request.method!='HEAD':
@@ -520,7 +524,7 @@ def create_app(config=None):
                         files=c.execute('SELECT count(*) FROM files WHERE ready=1').fetchone()[0],
                         used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0],
                         cleanup_bytes=c.execute('SELECT coalesce(sum(size),0) FROM files JOIN shares ON shares.id=files.share_id WHERE revoked=1 OR expires<=?',(time.time(),)).fetchone()[0],
-                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.9')
+                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.10')
         return jsonify(result)
 
     @app.get('/api/admin/users')
@@ -725,7 +729,7 @@ def create_app(config=None):
         with db(True) as c:audit(c,'database.exported')
         return send_file(io.BytesIO(data),as_attachment=True,download_name='passelio-database-'+time.strftime('%Y%m%d-%H%M%S',time.gmtime())+'.sqlite',mimetype='application/octet-stream')
 
-    init_storage(app,db,root,protected,fail,rate_limit)
+    init_storage(app,db,root,protected,fail,audit,rate_limit)
     init_transfers(app,db,root,blobs,protected,fail,audit,current_limits)
     init_upload_requests(app,db,protected,fail,audit,rate_limit)
     init_accounts(app,db,root,protected,fail,audit,rate_limit)

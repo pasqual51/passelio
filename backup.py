@@ -66,6 +66,7 @@ def create(data,output,storage=None):
                 if 'mfa_factors' in tables:target.execute('UPDATE mfa_factors SET pending_id=NULL,pending_expires=0')
                 if 'backup_schedule' in tables:target.execute('UPDATE backup_schedule SET enabled=0,requested=0,lease_until=0')
                 if 'backup_archives' in tables:target.execute('DELETE FROM backup_archives')
+                if 'storage_settings' in tables:target.execute('DELETE FROM storage_settings')
                 if 'storage_bindings' in tables:target.execute("DELETE FROM storage_bindings WHERE name!='local'")
                 if 'storage_deletions' in tables:target.execute('DELETE FROM storage_deletions')
                 if 'storage_pins' in tables:target.execute('DELETE FROM storage_pins')
@@ -76,6 +77,7 @@ def create(data,output,storage=None):
             remote_rows=[r for r in file_rows if r.get('storage','local')!='local']
             sources=[('files/'+r['id'],data/'files'/r['id']) for r in file_rows if r.get('storage','local')=='local']
             for row in remote_rows:
+                storage.ensure_binding(lock,row['storage'])
                 lock.execute('INSERT INTO storage_pins VALUES(?,?,?,?)',(pin,row['storage'],row['object_id'],int(time.time())+86400))
             sources += [('branding/'+r['id']+'.png',data/'branding'/(r['id']+'.png')) for r in lock.execute('SELECT id FROM branding_assets')]
             if 'mfa_factors' in tables:

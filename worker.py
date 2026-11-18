@@ -8,6 +8,7 @@ logging.basicConfig(level=logging.INFO)
 last_cleanup=0
 while True:
     try:
+        app.refresh_storage()
         app.process_mail(limit=10)
         app.run_backup_cycle()
         app.storage.process_deletions()

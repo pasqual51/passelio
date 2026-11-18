@@ -30,3 +30,14 @@ __pycache__/
 Thumbs.db
 
 .preview*
+
+# Application-managed credentials and private backup staging
+storage-secrets/
+mfa-secrets/
+backups/
+account-signing-key
+smtp-password
+.backup-snapshot-*/
+.backup-*/
+.restore-*/
+.database-export-*/

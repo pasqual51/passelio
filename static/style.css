@@ -14,3 +14,5 @@ body{min-height:100vh;background-size:cover;background-position:center;backgroun
 /* Compact administration navigation; wrap instead of hiding items off-screen. */
 #admin-console .admin-nav{flex-wrap:wrap;overflow-x:visible;gap:3px;padding:6px;align-items:center}
 #admin-console .admin-nav button{flex:0 0 auto;min-height:36px;padding:9px 11px;line-height:1.25;font-size:12px}
+
+.storage-provider{margin:20px 0;padding:16px;border:1px solid var(--line);border-radius:12px}.storage-provider summary{cursor:pointer;font-weight:700}.storage-provider textarea{font-family:ui-monospace,monospace;font-size:12px}#storage-configuration-editor{margin-bottom:24px}
