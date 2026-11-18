@@ -19,9 +19,9 @@ Pour HTTPS, le reverse proxy et les sauvegardes, consulter [DEPLOYMENT.md](DEPLO
 
 ## Limites de cette version
 
-Cette alpha n'est pas prête pour la production. Il n'y a pas encore de reprise après interruption, dossiers/ZIP, demandes de dépôt, quotas par utilisateur, S3, MFA ou antivirus. La parité complète avec Erugo n'est pas atteinte.
+Cette alpha n'est pas prête pour la production. Les dossiers/ZIP, la reprise des transferts authentifiés, les demandes de dépôt, les invitations/récupérations de compte, la double authentification TOTP et les sauvegardes planifiées sont disponibles. Les quotas par utilisateur, S3, SSO, la vérification/changement d’adresse e-mail et l’antivirus restent à développer. La parité complète avec Erugo n'est pas atteinte.
 
-La limite de téléchargements compte chaque requête de fichier, pas les personnes ni les partages complets. Une coupure pendant l'envoi impose de recommencer. Un arrêt brutal du serveur peut laisser une réservation à examiner manuellement. Le quota ne remplace pas la surveillance de l'espace disque réel.
+La limite de téléchargements compte chaque requête de fichier, pas les personnes ni les partages complets. Après une interruption d’un envoi authentifié, sélectionnez les mêmes fichiers et réessayez pour reprendre ; les morceaux déjà transmis sont vérifiés. Les dépôts externes recommencent actuellement depuis le début. Les réservations incomplètes sont nettoyées après 24 heures d’inactivité. Le quota ne remplace pas la surveillance de l'espace disque réel.
 
 Le développement de Passelio n'altère pas l'instance Erugo existante. Le nom et la licence doivent être validés avant une publication publique.
 
@@ -69,3 +69,9 @@ Les éléments visuels sont publics lorsqu'on connaît leur URL et ne doivent co
 Les choix intégrés sont Erugo, Erugo 2026, Heather, Sakura, Aqua, Colbolt, Dracula, Github Light, Tropical Sunset, Parma Violet, CyberNeon Flux, Amethyst, Galaxy et Cave Dweller. Les trois thèmes Passelio restent disponibles.
 
 Les thèmes sombres règlent aussi le texte, les champs, les cartes et les tableaux. Les dégradés sont générés à partir de couleurs validées. Certaines teintes sont ajustées pour le contraste ; il s'agit d'une adaptation à Passelio, pas d'une reproduction pixel à pixel. L'import/export conserve les rôles de couleur étendus. Voir third_party/README.md et sa licence MIT.
+
+## Double authentification et sauvegardes
+
+La double authentification se configure volontairement dans Mon profil, avec une application TOTP et dix codes de secours à conserver immédiatement. L’activation/désactivation ferme les sessions existantes. La récupération par mail ne contourne pas le second facteur.
+
+Les sauvegardes complètes se demandent et se planifient dans Administration → Paramètres du système → Sauvegarde de la base. Les archives incluent les secrets de l’installation : conservez-les en privé et copiez-les vers un stockage indépendant chiffré. La planification est désactivée par défaut. Le volume passelio_backups est séparé logiquement des données, mais demeure sur le même hôte Docker. La restauration se fait hors ligne via backup.py vers un nouveau dossier. Consultez DEPLOYMENT.md avant l’activation.

@@ -90,15 +90,15 @@ def init_mail(app,db,root):
         return dict(enabled=False,host='',port=587,security='starttls',username='',from_email='',from_name='Passelio',cc=[],bcc=[],templates=DEFAULT_TEMPLATES)
 
     def save(config,password,clear=False):
-        # Application-owned secret file, excluded from DB/API/audit values.
-        if clear:secret_path.unlink(missing_ok=True)
-        elif password:
-            tmp=secret_path.with_suffix('.new')
-            fd=os.open(tmp,os.O_WRONLY|os.O_CREAT|os.O_TRUNC,0o600)
-            with os.fdopen(fd,'w',encoding='utf-8') as f:f.write(password)
-            os.chmod(tmp,0o600)
-            os.replace(tmp,secret_path)
         with db(True) as c:
+            # Application-owned secret file, excluded from DB/API/audit values.
+            if clear:secret_path.unlink(missing_ok=True)
+            elif password:
+                tmp=secret_path.with_suffix('.new')
+                fd=os.open(tmp,os.O_WRONLY|os.O_CREAT|os.O_TRUNC,0o600)
+                with os.fdopen(fd,'w',encoding='utf-8') as f:f.write(password)
+                os.chmod(tmp,0o600)
+                os.replace(tmp,secret_path)
             c.execute('INSERT INTO mail_config VALUES(1,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value',(json.dumps(config,ensure_ascii=False),))
 
     def enqueue(c,owner,recipient,language,share_id=None,kind='share'):

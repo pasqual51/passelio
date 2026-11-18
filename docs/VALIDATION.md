@@ -54,3 +54,11 @@ Browser checks exercised Dracula dark-mode inputs/buttons/text and the Erugo 202
 Added regression cases cover recovery enumeration responses, single-use expiry, session invalidation, invitation authorization, profile validation, superseded mail cancellation, resumable offsets/quota/path enforcement/cleanup, upload-only request isolation/revocation, ZIP folder contents, message template allowlists/idempotency, statistics and full backup/restore/checksums/path validation. Static snapshots pair the frontend with the running backend; a test proves newly edited scripts cannot leak into an old process. Translation tests send source through Node stdin to avoid the Windows command-line length limit.
 
 The reported login error was reproduced as HTTP 404 on /api/me/profile from an alpha.6 process serving an alpha.7 script. The preview has been restarted with matching APIs and a browser login verified both administration and the home screen without an error notice. Preview screenshots and company assets remain ignored. No external production emails were sent; SMTP tests use a local fake server.
+
+## Alpha.8 MFA and retained backups
+
+New cases use RFC 6238 SHA-1 reference vectors, session invalidation, TOTP replay rejection, concurrent logins, hashed single-use recovery codes, enrollment expiry and authorization, password-recovery/MFA separation and full-backup restoration of active factors. Backup-manager cases exercise queueing, worker leases, retention, authenticated downloads, preserved last-good archives on failure, generic error redaction and restored schedules being disabled.
+
+The tests caught a Flask endpoint-name collision while wiring the backup manager; its endpoints now have distinct names. Browser checks do not enable MFA or backups on the user's demo account. No external SMTP or identity provider is contacted by these tests.
+
+The backup-worker tests also caught request-only audit context access; system audit events now explicitly record a null actor outside HTTP requests. Full backups hard-link immutable blobs/assets in private staging and release the writer lock before streaming archives. SMTP secret/config updates now share the backup snapshot lock.

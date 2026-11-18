@@ -4,15 +4,19 @@
 
 An independent, Docker-first file-sharing project with a French and English interface.
 
-**Status: private alpha, 0.1.0-alpha.7. Not production-ready.** This is the first functional milestone, not full Erugo feature parity. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
+**Status: private alpha, 0.1.0-alpha.8. Not production-ready.** Full Erugo feature parity is not yet reached. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
 
 ## Implemented
 
 - Responsive interface and original SVG logo; French/English switching and saved preferences.
 - Visual identity settings: validated custom logo/favicon/backgrounds, rotation, 17 theme presets, color editor and data-only theme JSON import/export.
-- Initial administrator, user creation, login/logout and password changes.
+- Initial administrator, user creation/invitations, single-use password recovery, profile names, login/logout and password changes.
+- Optional TOTP two-factor authentication, replay protection and hashed one-use recovery codes.
 - Dedicated bilingual administration console at /admin: overview, user roles/status, all-share revocation, storage, recent audit events and persistent quota settings.
-- Multiple files per share, streamed uploads, progress and SHA-256 checksums.
+- Multiple files/folders per share, quota-reserved resumable uploads, progress, SHA-256 checksums and ZIP downloads.
+- Expiring upload-only request links for external contributors.
+- Download statistics, editable bilingual account/lifecycle mail templates and opt-in lifecycle notifications.
+- Full backup/verify/offline restore, administration queue, daily/weekly scheduling and retained archive downloads.
 - Expiring links (configurable maximum, up to 365 days), optional share password, revocation and download-request limits.
 - Persistent SQLite database and file storage; global and per-share quotas reserved transactionally.
 - Grouped system settings with help: application name/URL, login message, default language, share expiry/password policies, session lifetime and consistent SQLite export.
@@ -22,7 +26,7 @@ An independent, Docker-first file-sharing project with a French and English inte
 
 ## Not implemented yet
 
-Resumable uploads, folders/ZIP downloads, upload requests, per-user quotas, S3, MFA/SSO and antivirus. There is no end-to-end encryption or completed security audit. See [the roadmap](docs/PROJECT.md).
+Verified self-registration/email changes, per-user quotas, S3, external identity providers (SSO) and antivirus. There is no end-to-end encryption or completed security audit. See [the roadmap](docs/PROJECT.md).
 
 ## Try locally with Docker
 

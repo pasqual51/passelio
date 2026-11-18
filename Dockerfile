@@ -5,8 +5,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     && groupadd --gid 10001 passelio \
     && useradd --uid 10001 --gid 10001 --no-create-home passelio \
-    && mkdir /data && chown 10001:10001 /data
-COPY app.py mailer.py branding.py accounts.py transfers.py insights.py requests_upload.py backup.py themes.py worker.py ./
+    && mkdir /data /backups && chown 10001:10001 /data /backups
+COPY app.py mailer.py branding.py accounts.py transfers.py insights.py requests_upload.py backup.py backup_manager.py mfa.py themes.py worker.py ./
 COPY third_party/ ./third_party/
 COPY static/ ./static/
 USER 10001:10001

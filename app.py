@@ -15,7 +15,7 @@ from functools import wraps
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from flask import Flask, g, jsonify, request, send_file
+from flask import Flask, g, jsonify, request, send_file, has_request_context
 from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash, generate_password_hash
 from mailer import init_mail,validate_settings,address,addresses
@@ -24,6 +24,8 @@ from accounts import init_accounts
 from transfers import init_transfers, valid_name
 from insights import init_insights
 from requests_upload import init_upload_requests
+from mfa import init_mfa
+from backup_manager import init_backup_manager
 
 
 def create_app(config=None):
@@ -124,7 +126,7 @@ def create_app(config=None):
 
     def audit(c, action, target=None):
         c.execute("INSERT INTO audit(created,user_id,action,target) VALUES(?,?,?,?)",
-                  (int(time.time()), g.get("user", {}).get("id"), action, target))
+                  (int(time.time()), g.get("user", {}).get("id") if has_request_context() else None, action, target))
 
     def rate_limit(bucket, limit):
         now = int(time.time())
@@ -226,7 +228,7 @@ def create_app(config=None):
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="0.1.0-alpha.7")
+        return jsonify(status="ok", version="0.1.0-alpha.8")
 
     @app.get('/api/config')
     def public_config():
@@ -247,9 +249,14 @@ def create_app(config=None):
         stored = user["password"] if user else generate_password_hash("unavailable-account")
         if not check_password_hash(stored, password) or not user or not user['active']:
             return fail("invalid_credentials", 401)
+        if not rate_limit('login-account:'+str(user['id']),15):return fail('rate_limited',429)
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
         duration=system_settings()['session_hours']*3600
         with db(True) as c:
+            current=c.execute('SELECT password,active FROM users WHERE id=?',(user['id'],)).fetchone()
+            if not current or not current['active'] or current['password']!=user['password']:return fail('invalid_credentials',401)
+            mfa_error=app.verify_mfa_login(user['id'],body.get('code'),c)
+            if mfa_error:return fail(mfa_error,401)
             c.execute("INSERT INTO sessions VALUES(?,?,?,?)", (hashlib.sha256(token.encode()).hexdigest(), user["id"], csrf, int(time.time()) + duration))
         response = jsonify(ok=True)
         response.set_cookie("passelio_session", token, max_age=duration, httponly=True, secure=app.config["SECURE_COOKIES"], samesite="Strict")
@@ -497,7 +504,7 @@ def create_app(config=None):
                         files=c.execute('SELECT count(*) FROM files WHERE ready=1').fetchone()[0],
                         used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0],
                         cleanup_bytes=c.execute('SELECT coalesce(sum(size),0) FROM files JOIN shares ON shares.id=files.share_id WHERE revoked=1 OR expires<=?',(time.time(),)).fetchone()[0],
-                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.7')
+                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.8')
         return jsonify(result)
 
     @app.get('/api/admin/users')
@@ -706,5 +713,7 @@ def create_app(config=None):
     init_upload_requests(app,db,protected,fail,audit,rate_limit)
     init_accounts(app,db,root,protected,fail,audit,rate_limit)
     init_insights(app,db,protected,fail,audit)
+    init_mfa(app,db,root,protected,fail,audit,rate_limit)
+    init_backup_manager(app,db,root,protected,fail,audit,rate_limit)
     init_branding(app,db,root,protected,fail,audit)
     return app

@@ -17,7 +17,7 @@ import tempfile
 import zipfile
 
 FORMAT=1
-SAFE=re.compile(r'^(passelio\.sqlite|smtp-password|account-signing-key|files/[a-f0-9]{48}|branding/[a-f0-9]{48}\.png)$')
+SAFE=re.compile(r'^(passelio\.sqlite|smtp-password|account-signing-key|files/[a-f0-9]{48}|branding/[a-f0-9]{48}\.png|mfa-secrets/[a-f0-9]{48})$')
 
 
 def create(data,output):
@@ -25,13 +25,14 @@ def create(data,output):
     if output.exists():raise ValueError('Output already exists')
     if not (data/'passelio.sqlite').is_file():raise ValueError('Database missing')
     output.parent.mkdir(parents=True,exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='.backup-',dir=output.parent) as folder:
-        folder=Path(folder);snapshot=folder/'passelio.sqlite'
+    with tempfile.TemporaryDirectory(prefix='.backup-',dir=output.parent) as folder, \
+         tempfile.TemporaryDirectory(prefix='.backup-snapshot-',dir=data) as snapshot_folder:
+        folder,snapshot_folder=Path(folder),Path(snapshot_folder)
+        snapshot=snapshot_folder/'passelio.sqlite'
         lock=sqlite3.connect(data/'passelio.sqlite',timeout=30)
         try:
             lock.row_factory=sqlite3.Row
             lock.execute('BEGIN IMMEDIATE')
-            # A separate reader can back up WAL while writers/cleanup remain excluded.
             reader=sqlite3.connect(data/'passelio.sqlite')
             target=sqlite3.connect(snapshot)
             try:
@@ -40,28 +41,42 @@ def create(data,output):
                 target.execute('DELETE FROM sessions');target.execute('DELETE FROM tickets')
                 target.execute('DELETE FROM account_actions');target.execute('DELETE FROM uploads')
                 target.execute('DELETE FROM files WHERE ready=0')
+                tables={r[0] for r in target.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+                if 'mfa_factors' in tables:target.execute('UPDATE mfa_factors SET pending_id=NULL,pending_expires=0')
+                if 'backup_schedule' in tables:target.execute('UPDATE backup_schedule SET enabled=0,requested=0,lease_until=0')
+                if 'backup_archives' in tables:target.execute('DELETE FROM backup_archives')
                 target.commit()
             finally:target.close();reader.close()
+            sources=[('files/'+r['id'],data/'files'/r['id']) for r in lock.execute('SELECT id FROM files WHERE ready=1')]
+            sources += [('branding/'+r['id']+'.png',data/'branding'/(r['id']+'.png')) for r in lock.execute('SELECT id FROM branding_assets')]
+            if 'mfa_factors' in tables:
+                sources += [('mfa-secrets/'+r['secret_id'],data/'mfa-secrets'/r['secret_id']) for r in lock.execute('SELECT secret_id FROM mfa_factors WHERE enabled=1')]
             paths=[('passelio.sqlite',snapshot)]
-            paths += [('files/'+r['id'],data/'files'/r['id']) for r in lock.execute('SELECT id FROM files WHERE ready=1')]
-            paths += [('branding/'+r['id']+'.png',data/'branding'/(r['id']+'.png')) for r in lock.execute('SELECT id FROM branding_assets')]
-            paths += [(name,data/name) for name in ('smtp-password','account-signing-key') if (data/name).is_file()]
-            if any(not SAFE.fullmatch(name) or path.is_symlink() or not path.is_file() for name,path in paths):raise ValueError('Unsafe or missing source file')
-            required=sum(path.stat().st_size for _,path in paths)
-            if shutil.disk_usage(output.parent).free<required+64*1024**2:raise ValueError('Not enough backup disk space')
-            archive=folder/'backup.zip';manifest={}
-            with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_STORED,allowZip64=True) as z:
-                for name,path in paths:
-                    digest=hashlib.sha256();size=0
-                    with path.open('rb') as src,z.open(name,'w',force_zip64=True) as dst:
-                        while chunk:=src.read(1024**2):dst.write(chunk);digest.update(chunk);size+=len(chunk)
-                    manifest[name]={'size':size,'sha256':digest.hexdigest()}
-                z.writestr('manifest.json',json.dumps({'format':FORMAT,'files':manifest}))
-            os.chmod(archive,0o600)
-            # Exclusive creation prevents overwriting an unrelated backup.
-            with os.fdopen(os.open(output,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'wb') as dest,archive.open('rb') as src:shutil.copyfileobj(src,dest)
-            os.chmod(output,0o600)
+            for name,source in sources:
+                if not SAFE.fullmatch(name) or source.is_symlink() or not source.is_file():raise ValueError('Unsafe or missing source file')
+                path=snapshot_folder/name;path.parent.mkdir(parents=True,exist_ok=True)
+                # Completed blobs, raster assets and MFA seeds are immutable.
+                # Link while cleanup is excluded, then release the writer lock.
+                os.link(source,path);paths.append((name,path))
+            for name in ('smtp-password','account-signing-key'):
+                source=data/name
+                if source.is_file():
+                    if source.is_symlink():raise ValueError('Unsafe secret file')
+                    path=snapshot_folder/name;shutil.copyfile(source,path);os.chmod(path,0o600)
+                    paths.append((name,path))
         finally:lock.rollback();lock.close()
+        required=sum(path.stat().st_size for _,path in paths)
+        if shutil.disk_usage(output.parent).free<required+64*1024**2:raise ValueError('Not enough backup disk space')
+        archive=folder/'backup.zip';manifest={}
+        with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_STORED,allowZip64=True) as z:
+            for name,path in paths:
+                digest=hashlib.sha256();size=0
+                with path.open('rb') as src,z.open(name,'w',force_zip64=True) as dst:
+                    while chunk:=src.read(1024**2):dst.write(chunk);digest.update(chunk);size+=len(chunk)
+                manifest[name]={'size':size,'sha256':digest.hexdigest()}
+            z.writestr('manifest.json',json.dumps({'format':FORMAT,'files':manifest}))
+        os.chmod(archive,0o600)
+        os.link(archive,output)  # Same-volume atomic publication, never overwrite.
     return output
 
 
