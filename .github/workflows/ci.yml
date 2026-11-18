@@ -20,4 +20,5 @@ jobs:
       - run: node --check static/mail.js
       - run: node --check static/system.js
       - run: node --check static/branding.js
+      - run: node --check static/accounts.js
       - run: docker build -t passelio:ci .

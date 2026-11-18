@@ -132,7 +132,16 @@ def init_mail(app,db,root):
                 cc=config['cc'] if job['kind']=='share' else []
                 bcc=config['bcc'] if job['kind']=='share' else []
                 if cc:msg['Cc']=', '.join(cc)
-                if job['kind']=='test':
+                if job['kind']=='account':
+                    subject, body = app.render_account_mail(job)
+                    msg['Subject'] = subject
+                    msg.set_content(body)
+                elif job['kind'] in ('download','expiring','expired','revoked'):
+                    if not share:raise ValueError('mail_cancelled')
+                    subject, body = app.render_lifecycle_mail(job,share,account)
+                    msg['Subject']=subject
+                    msg.set_content(body)
+                elif job['kind']=='test':
                     msg['Subject']='Passelio — Test SMTP' if job['language']=='fr' else 'Passelio — SMTP test'
                     msg.set_content('Test SMTP envoyé par Passelio.' if job['language']=='fr' else 'SMTP test sent by Passelio.')
                 else:

@@ -8,6 +8,8 @@ import time
 import json
 import io
 import tempfile
+import mimetypes
+import zipfile
 from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
@@ -18,10 +20,24 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash, generate_password_hash
 from mailer import init_mail,validate_settings,address,addresses
 from branding import init_branding
+from accounts import init_accounts
+from transfers import init_transfers, valid_name
+from insights import init_insights
+from requests_upload import init_upload_requests
 
 
 def create_app(config=None):
     app = Flask(__name__, static_folder="static")
+    # Keep frontend files paired with the running backend until the next restart.
+    # Development edits must not expose new API calls to an older process.
+    static_root = Path(app.static_folder)
+    frontend = {p.relative_to(static_root).as_posix(): p.read_bytes()
+                for p in static_root.rglob('*') if p.is_file()}
+    def bundled_static(filename):
+        if filename not in frontend:
+            return jsonify(error='not_found'), 404
+        return send_file(io.BytesIO(frontend[filename]), mimetype=mimetypes.guess_type(filename)[0] or 'application/octet-stream')
+    app.view_functions['static'] = bundled_static
     app.config.update(DATA_DIR=os.getenv("DATA_DIR", "./data"),
                       BASE_URL=os.getenv("BASE_URL", "http://localhost:8080"),
                       SECURE_COOKIES=os.getenv("SECURE_COOKIES", "true").lower() == "true",
@@ -175,6 +191,8 @@ def create_app(config=None):
     def check_origin():
         if request.method=='POST' and request.path.startswith('/api/admin/branding/assets/'):
             request.max_content_length=5*1024**2
+        elif request.method=='PATCH' and (request.path.startswith('/api/uploads/') or request.path.startswith('/api/requests/')):
+            request.max_content_length=8*1024**2
         elif not (request.method == 'POST' and request.path.startswith('/api/shares/') and request.path.endswith('/files')):
             request.max_content_length = 65536 if request.path=='/api/admin/mail/settings' else 16384
         else:
@@ -202,12 +220,13 @@ def create_app(config=None):
     @app.get("/")
     @app.get("/admin")
     @app.get("/s/<share_id>")
+    @app.get("/r/<share_id>")
     def index(share_id=None):
-        return app.send_static_file("index.html")
+        return bundled_static("index.html")
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="0.1.0-alpha.6")
+        return jsonify(status="ok", version="0.1.0-alpha.7")
 
     @app.get('/api/config')
     def public_config():
@@ -331,7 +350,7 @@ def create_app(config=None):
     def upload(sid):
         size = request.content_length
         name = request.args.get("name", "")
-        if size is None or size <= 0 or not name or len(name)>240 or any(ord(x)<32 for x in name) or "/" in name or "\\" in name or name in (".", ".."):
+        if size is None or size <= 0 or not valid_name(name):
             return fail("invalid_input")
         fid = secrets.token_hex(24)
         with db(True) as c:
@@ -424,7 +443,41 @@ def create_app(config=None):
             if request.method != "HEAD":
                 c.execute("UPDATE shares SET downloads=downloads+1 WHERE id=?",(sid,))
                 audit(c,"file.downloaded",fid)
+                app.schedule_notification(c,s,"download")
             return send_file(blobs/fid,as_attachment=True,download_name=f["name"],mimetype="application/octet-stream",conditional=False)
+
+    @app.get('/api/public/<sid>/archive')
+    def archive(sid):
+        if not rate_limit('archive:'+(request.remote_addr or 'unknown'),5):return fail('rate_limited',429)
+        with db(True) as c:
+            s=c.execute('SELECT * FROM shares WHERE id=?',(sid,)).fetchone()
+            if not available(c,s):return fail('not_found',404)
+            if not unlocked(c,s):return fail('locked',403)
+            if s['max_downloads'] and s['downloads']>=s['max_downloads']:return fail('download_limit',410)
+            rows=c.execute('SELECT * FROM files WHERE share_id=? AND ready=1',(sid,)).fetchall()
+            if not rows:return fail('not_found',404)
+            if shutil.disk_usage(root).free<sum(r['size'] for r in rows)+64*1024**2:return fail('quota',413)
+            stream=tempfile.TemporaryFile(dir=root)
+            try:
+                seen=set()
+                with zipfile.ZipFile(stream,'w',zipfile.ZIP_STORED,allowZip64=True) as z:
+                    for row in rows:
+                        name=row['name']
+                        if not valid_name(name):raise ValueError('Invalid archive name')
+                        if name in seen:name=row['id']+'/'+name
+                        seen.add(name)
+                        z.write(blobs/row['id'],name)
+                stream.seek(0)
+                if request.method!='HEAD':
+                    c.execute('UPDATE shares SET downloads=downloads+1 WHERE id=?',(sid,))
+                    audit(c,'share.archive_downloaded',sid)
+                    app.schedule_notification(c,s,'download')
+                response=send_file(stream,as_attachment=True,download_name='passelio-'+sid+'.zip',mimetype='application/zip',conditional=False)
+                response.call_on_close(stream.close)
+                return response
+            except Exception:
+                stream.close()
+                raise
 
     def current_limits(connection=None):
         if connection is None:
@@ -444,7 +497,7 @@ def create_app(config=None):
                         files=c.execute('SELECT count(*) FROM files WHERE ready=1').fetchone()[0],
                         used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0],
                         cleanup_bytes=c.execute('SELECT coalesce(sum(size),0) FROM files JOIN shares ON shares.id=files.share_id WHERE revoked=1 OR expires<=?',(time.time(),)).fetchone()[0],
-                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.6')
+                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.7')
         return jsonify(result)
 
     @app.get('/api/admin/users')
@@ -649,5 +702,9 @@ def create_app(config=None):
         with db(True) as c:audit(c,'database.exported')
         return send_file(io.BytesIO(data),as_attachment=True,download_name='passelio-database-'+time.strftime('%Y%m%d-%H%M%S',time.gmtime())+'.sqlite',mimetype='application/octet-stream')
 
+    init_transfers(app,db,root,blobs,protected,fail,audit,current_limits)
+    init_upload_requests(app,db,protected,fail,audit,rate_limit)
+    init_accounts(app,db,root,protected,fail,audit,rate_limit)
+    init_insights(app,db,protected,fail,audit)
     init_branding(app,db,root,protected,fail,audit)
     return app

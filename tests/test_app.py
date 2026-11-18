@@ -128,7 +128,7 @@ def test_translation_keys_match():
     source+=(Path(__file__).parents[1]/'static/system.js').read_text(encoding='utf-8').split('let systemConfig=')[0]
     source+=(Path(__file__).parents[1]/'static/branding.js').read_text(encoding='utf-8').split('let brandingData=')[0]
     code=source+'\nconsole.log(JSON.stringify(Object.fromEntries(Object.entries(translations).map(([k,v])=>[k,Object.keys(v).sort()]))));'
-    result=subprocess.run(['node','-e',code],capture_output=True,text=True,check=True)
+    result=subprocess.run(['node'],input=code,capture_output=True,text=True,encoding='utf-8',check=True)
     keys=json.loads(result.stdout)
     assert keys['fr']==keys['en']
     import re

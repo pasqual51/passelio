@@ -48,3 +48,9 @@ Browser checks cover the French and English visual-identity controls and actual 
 Fourteen upstream bundled palette references are adapted with MIT attribution alongside the three existing presets. Two added tests assert the full choice list, validate every preset, check dark/gradient palette export/import and reject URL-valued gradient endpoints. The six branding cases and translation/static-label check pass locally. CI reruns all 32 tests and Docker construction.
 
 Browser checks exercised Dracula dark-mode inputs/buttons/text and the Erugo 2026 gradient. The previously selected Amber preset was restored. Existing user-uploaded preview assets were left untouched and are not committed. Screenshot proof is kept only in ignored local preview files. Source palette data and the upstream license are included under third_party.
+
+## Alpha.7 accounts, transfers and synchronization
+
+Added regression cases cover recovery enumeration responses, single-use expiry, session invalidation, invitation authorization, profile validation, superseded mail cancellation, resumable offsets/quota/path enforcement/cleanup, upload-only request isolation/revocation, ZIP folder contents, message template allowlists/idempotency, statistics and full backup/restore/checksums/path validation. Static snapshots pair the frontend with the running backend; a test proves newly edited scripts cannot leak into an old process. Translation tests send source through Node stdin to avoid the Windows command-line length limit.
+
+The reported login error was reproduced as HTTP 404 on /api/me/profile from an alpha.6 process serving an alpha.7 script. The preview has been restarted with matching APIs and a browser login verified both administration and the home screen without an error notice. Preview screenshots and company assets remain ignored. No external production emails were sent; SMTP tests use a local fake server.

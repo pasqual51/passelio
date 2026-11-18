@@ -99,3 +99,23 @@ Seventeen presets are now available: the three original Passelio palettes plus f
 Theme JSON still requires name and colors with primary, accent and background. Optional supported hex-only roles are surface, text, muted, subtle, border, primary_text, primary_end and background_end. Other fields are rejected. Three-color themes remain compatible with alpha.5. Extended palettes validate text, muted and accent contrast across page/card/subtle surfaces, and primary text against gradient endpoints. The source adapter adjusts colors when required. This is not a certification of arbitrary artwork or every visual state.
 
 The API exposes original color roles and a resolved palette for rendering. Imported/exported extended themes retain all supported roles, even though the basic editor exposes only the three main colors. To edit/remove advanced roles, edit the exported JSON; CSS and URLs remain forbidden. The application creates gradients only from validated color endpoints and adapts cards/inputs/tables/header to light or dark mode. Local theme tests restore the previous selection afterward.
+
+## Accounts and transfers (alpha.7)
+
+Invitation/reset delivery requires enabled SMTP. Account links use the configured trusted application URL, a fragment token (not sent in HTTP request paths), one-hour reset/24-hour invitation expiry and single-use redemption. Resetting a password invalidates sessions. Keep account-signing-key private and persistent in the data volume; the SQLite export alone does not include it. Disabled users cannot redeem links. Account emails do not receive automatic CC/BCC copies. Templates are plain text with an allowlist of variables. Recovery responses do not disclose account existence.
+
+Resumable uploads reserve their full size against quotas, accept at most 8 MiB per chunk and expire after 24 hours without activity. The authenticated browser keeps local resume metadata and verifies previously uploaded chunk hashes when the same files are selected again. This is not the tus protocol. Upload-only request links are bearer capabilities: anyone holding the link can contribute within the owner's quotas until expiry/revocation, but cannot list or download the collection. Review quota and exposure before distributing links. Public request uploads currently restart from scratch after a browser interruption.
+
+ZIP downloads preserve validated relative paths and count as one download request. They require temporary local disk space for the archive. Empty folders are not represented. File and ZIP requests count requests, not proof that a complete download reached the recipient.
+
+## Full backup and offline restore
+
+The backup CLI includes completed file blobs, visual assets, the SQLite snapshot and installation secrets. Treat the archive as confidential; transfer/store it using your normal encrypted backup system. Backups are not encrypted by Passelio. Sessions, download tickets, account actions and incomplete uploads are excluded. Do not publish an archive in the source repository.
+
+```sh
+python backup.py create --data /data --output /backup/passelio-20261118.zip
+python backup.py verify --archive /backup/passelio-20261118.zip
+python backup.py restore --archive /backup/passelio-20261118.zip --target /new-data
+```
+
+Mount /backup separately and ensure the container UID can write it. Creation reserves the database writer lock while copying a consistent snapshot and completed blobs, so uploads/cleanup may wait during a large backup. Restore only while app and worker are stopped, into a nonexistent target directory; switch the deployment volume after verification. The restore CLI validates the inventory, paths, sizes, SHA-256 checksums and SQLite integrity. It never overwrites an existing data directory. Restore currently supports only the local backend. Schedule/retention integration and S3 are pending.
