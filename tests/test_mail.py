@@ -62,7 +62,7 @@ def test_local_delivery_bcc_hidden_and_bilingual_templates(app,smtp_server):
     for recipients,msg in smtp_server.messages:
         assert set(recipients)=={'recipient@example.com','si@example.com','archive@example.com'}
         assert msg['Cc']=='si@example.com' and msg['Bcc'] is None
-        body=msg.get_content()
+        body=msg.get_body(preferencelist=('plain',)).get_content()
         assert '/s/'+s in body and 'never-email-this-password' not in body
     assert 'Des fichiers' in str(smtp_server.messages[0][1]['Subject'])
     assert 'Files are waiting' in str(smtp_server.messages[1][1]['Subject'])

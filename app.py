@@ -21,6 +21,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from mailer import init_mail,validate_settings,address,addresses
 from branding import init_branding
 from accounts import init_accounts
+from account_policy import init_account_policy
+from identity import init_identity
 from transfers import init_transfers, valid_name
 from insights import init_insights
 from requests_upload import init_upload_requests
@@ -198,7 +200,7 @@ def create_app(config=None):
         elif request.method=='PATCH' and (request.path.startswith('/api/uploads/') or request.path.startswith('/api/requests/')):
             request.max_content_length=8*1024**2
         elif not (request.method == 'POST' and request.path.startswith('/api/shares/') and request.path.endswith('/files')):
-            request.max_content_length = 65536 if request.path=='/api/admin/mail/settings' or request.path.startswith('/api/admin/storage-configuration/') else 16384
+            request.max_content_length = 65536 if request.path=='/api/admin/mail/settings' or request.path.startswith(('/api/admin/storage-configuration/','/api/admin/templates/')) else 16384
         else:
             request.max_content_length = current_limits()['SHARE_LIMIT']
         if request.method not in ("GET", "HEAD", "OPTIONS"):
@@ -230,7 +232,7 @@ def create_app(config=None):
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="0.1.0-alpha.10")
+        return jsonify(status="ok", version="0.1.0-alpha.11")
 
     @app.get('/api/config')
     def public_config():
@@ -249,7 +251,7 @@ def create_app(config=None):
             user = c.execute("SELECT * FROM users WHERE email=?", (email.strip().lower(),)).fetchone()
         # Always perform a password hash calculation, including unknown accounts.
         stored = user["password"] if user else generate_password_hash("unavailable-account")
-        if not check_password_hash(stored, password) or not user or not user['active']:
+        if not check_password_hash(stored, password) or not user or not user['active'] or not user['email_verified']:
             return fail("invalid_credentials", 401)
         if not rate_limit('login-account:'+str(user['id']),15):return fail('rate_limited',429)
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
@@ -371,6 +373,7 @@ def create_app(config=None):
             share_size = c.execute("SELECT coalesce(sum(size),0) FROM files WHERE share_id=?", (sid,)).fetchone()[0]
             total = c.execute("SELECT coalesce(sum(size),0) FROM files").fetchone()[0]
             limits=current_limits(c)
+            if not app.user_quota_allows(c,g.user['id'],size):return fail('user_quota',413)
             if share_size+size > limits['SHARE_LIMIT'] or total+size > limits['STORAGE_LIMIT'] or shutil.disk_usage(root).free < size+64*1024**2:
                 return fail("quota", 413)
             c.execute("INSERT INTO files(id,share_id,name,size,created,storage) VALUES(?,?,?,?,?,?)", (fid,sid,name,size,int(time.time()),backend))
@@ -524,7 +527,7 @@ def create_app(config=None):
                         files=c.execute('SELECT count(*) FROM files WHERE ready=1').fetchone()[0],
                         used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0],
                         cleanup_bytes=c.execute('SELECT coalesce(sum(size),0) FROM files JOIN shares ON shares.id=files.share_id WHERE revoked=1 OR expires<=?',(time.time(),)).fetchone()[0],
-                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.10')
+                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.11')
         return jsonify(result)
 
     @app.get('/api/admin/users')
@@ -558,10 +561,17 @@ def create_app(config=None):
     @app.get('/api/admin/shares')
     @protected(admin=True)
     def admin_shares():
-        q=request.args.get('q','')[:254].lower()
+        q=request.args.get('q','')[:254].lower();state=request.args.get('state','all')
+        try:page=max(1,int(request.args.get('page','1')))
+        except ValueError:return fail('invalid_input')
+        if page>100000 or state not in ('all','active','expired','revoked'):return fail('invalid_input')
+        predicates={'all':'1=1','active':'s.revoked=0 AND s.expires>?','expired':'s.revoked=0 AND s.expires<=?','revoked':'s.revoked=1'}
+        args=[q,q]+([time.time()] if state in ('active','expired') else [])
+        where='(instr(lower(s.title),?)>0 OR instr(lower(u.email),?)>0) AND '+predicates[state]
         with db() as c:
-            rows=c.execute('SELECT s.id,s.title,s.created,s.expires,s.revoked,s.downloads,s.max_downloads,u.email AS owner,count(f.id) AS files,coalesce(sum(f.size),0) AS size FROM shares s JOIN users u ON u.id=s.owner LEFT JOIN files f ON f.share_id=s.id WHERE instr(lower(s.title),?)>0 OR instr(lower(u.email),?)>0 GROUP BY s.id ORDER BY s.created DESC LIMIT 200',(q,q)).fetchall()
-        return jsonify(shares=[dict(r) for r in rows])
+            total=c.execute('SELECT count(*) FROM shares s JOIN users u ON u.id=s.owner WHERE '+where,args).fetchone()[0]
+            rows=c.execute('SELECT s.id,s.title,s.created,s.expires,s.revoked,s.downloads,s.max_downloads,u.email AS owner,count(f.id) AS files,coalesce(sum(f.size),0) AS size FROM shares s JOIN users u ON u.id=s.owner LEFT JOIN files f ON f.share_id=s.id WHERE '+where+' GROUP BY s.id ORDER BY s.created DESC,s.id LIMIT 200 OFFSET ?',args+[(page-1)*200]).fetchall()
+        return jsonify(shares=[dict(r) for r in rows],page=page,pages=max(1,(total+199)//200),total=total)
 
     @app.delete('/api/admin/shares/<sid>')
     @protected(admin=True)
@@ -723,6 +733,9 @@ def create_app(config=None):
                 try:
                     c.backup(target)
                     target.execute('PRAGMA journal_mode=DELETE')
+                    for transient in ('oidc_flows','oidc_pending'):
+                        if target.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",(transient,)).fetchone():target.execute('DELETE FROM '+transient)
+                    target.commit()
                 finally:target.close()
                 if path.stat().st_size>32*1024**2:return fail('backup_too_large',413)
                 data=path.read_bytes()
@@ -733,8 +746,10 @@ def create_app(config=None):
     init_transfers(app,db,root,blobs,protected,fail,audit,current_limits)
     init_upload_requests(app,db,protected,fail,audit,rate_limit)
     init_accounts(app,db,root,protected,fail,audit,rate_limit)
+    init_account_policy(app,db,protected,fail,audit,rate_limit)
     init_insights(app,db,protected,fail,audit)
     init_mfa(app,db,root,protected,fail,audit,rate_limit)
+    init_identity(app,db,root,protected,fail,audit,rate_limit)
     init_backup_manager(app,db,root,protected,fail,audit,rate_limit)
     init_branding(app,db,root,protected,fail,audit)
     return app

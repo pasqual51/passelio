@@ -51,6 +51,7 @@ def init_transfers(app, db, root, blobs, protected, fail, audit, limits):
             used = c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0]
             share_used = c.execute('SELECT coalesce(sum(size),0) FROM files WHERE share_id=?', (sid,)).fetchone()[0]
             cap = limits(c)
+            if not app.user_quota_allows(c,g.user['id'],size):return fail('user_quota',413)
             if used + size > cap['STORAGE_LIMIT'] or share_used + size > cap['SHARE_LIMIT'] or shutil.disk_usage(root).free < size + 64 * 1024**2:
                 return fail('quota', 413)
             c.execute('INSERT INTO files(id,share_id,name,size,created,storage) VALUES(?,?,?,?,?,?)',

@@ -6,8 +6,9 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && groupadd --gid 10001 passelio \
     && useradd --uid 10001 --gid 10001 --no-create-home passelio \
     && mkdir /data /backups && chown 10001:10001 /data /backups
-COPY app.py mailer.py branding.py accounts.py transfers.py insights.py requests_upload.py backup.py backup_manager.py mfa.py blobstore.py storage_gui.py themes.py worker.py ./
+COPY app.py mailer.py branding.py accounts.py account_policy.py identity.py email_layout.py transfers.py insights.py requests_upload.py backup.py backup_manager.py mfa.py blobstore.py storage_gui.py themes.py worker.py ./
 COPY third_party/ ./third_party/
+COPY LICENSE ./LICENSE
 COPY static/ ./static/
 USER 10001:10001
 EXPOSE 8080

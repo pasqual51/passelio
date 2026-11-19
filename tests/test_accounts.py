@@ -15,7 +15,7 @@ def test_recovery_single_use_session_revocation_and_no_copies(app, smtp_server):
     assert app.process_mail() == 1
     recipients, message = smtp_server.messages[0]
     assert recipients == ['admin@example.com'] and message['Cc'] is None
-    token = re.search(r'#account=([a-f0-9]+\.[a-f0-9]+)', message.get_content()).group(1)
+    token = re.search(r'#account=([a-f0-9]+\.[a-f0-9]+)', message.get_body(preferencelist=('plain',)).get_content()).group(1)
     with app.db() as db:
         row = db.execute('SELECT * FROM account_actions').fetchone()
         assert row['token_hash'] == hashlib.sha256(token.encode()).hexdigest()
@@ -34,7 +34,7 @@ def test_invite_authorization_expiration_and_profile(app, smtp_server):
     assert c.post('/api/admin/invitations',headers=h,json={'email':'new@example.com'}).status_code == 201
     assert c.post('/api/admin/invitations',headers=h,json={'email':'new@example.com'}).status_code == 409
     app.process_mail()
-    token = re.search(r'#account=([a-f0-9]+\.[a-f0-9]+)',smtp_server.messages[0][1].get_content()).group(1)
+    token = re.search(r'#account=([a-f0-9]+\.[a-f0-9]+)',smtp_server.messages[0][1].get_body(preferencelist=('plain',)).get_content()).group(1)
     guest = app.test_client()
     with app.db(True) as db:
         db.execute('UPDATE account_actions SET expires=?',(int(time.time())-1,))

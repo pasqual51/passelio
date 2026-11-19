@@ -1,6 +1,6 @@
 # Passelio — Project blueprint
 
-Status: a runnable private alpha (0.1.0-alpha.10) is available on codex/initial-alpha in pull request #1. No production release or full Erugo feature parity is available. See VALIDATION.md for completed checks and remaining limits.
+Status: a runnable private alpha (0.1.0-alpha.11) is available on codex/initial-alpha in pull request #1. No production release or full Erugo feature parity is available. See VALIDATION.md for completed checks and remaining limits.
 
 ## Purpose
 
@@ -59,4 +59,4 @@ Use immutable versioned images; no runtime package updates as a release strategy
 
 ## Public release checklist
 
-Choose a project license with the owner, add contribution guidelines and private vulnerability reporting, verify naming, document supported versions and limitations, and publish reproducible Docker instructions. The repository remains private until the owner requests publication. Do not claim feature parity or security certification before validation.
+AGPL-3.0-only is selected. Add contribution guidelines and private vulnerability reporting, verify naming, document supported versions and limitations, and publish reproducible Docker instructions. The repository remains private until the owner requests publication. Do not claim feature parity or security certification before validation.

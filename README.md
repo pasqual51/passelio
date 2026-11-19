@@ -4,7 +4,7 @@
 
 An independent, Docker-first file-sharing project with a French and English interface.
 
-**Status: private alpha, 0.1.0-alpha.10. Not production-ready.** Full Erugo feature parity is not yet reached. No public container registry release exists yet. Licensing must be agreed with the owner before public distribution.
+**Status: private alpha, 0.1.0-alpha.11. Not production-ready.** Full Erugo feature parity is not yet reached. Licensed under AGPL-3.0-only. Versioned alpha container publication is configured for GitHub Container Registry; package access depends on repository/package visibility.
 
 ## Implemented
 
@@ -19,7 +19,9 @@ An independent, Docker-first file-sharing project with a French and English inte
 - Full backup/verify/offline restore, administration queue, daily/weekly scheduling and retained archive downloads.
 - Expiring links (configurable maximum, up to 365 days), optional share password, revocation and download-request limits.
 - Persistent SQLite database; private local, S3-compatible and SFTP file destinations with per-file routing, streamed downloads, retryable cleanup and remote-inclusive full backups.
-- Global and per-share quotas reserved transactionally.
+- Global, per-share and per-user quotas reserved transactionally.
+- Optional email-owned registration, verified email changes and explicitly linked Google/Microsoft OIDC with local MFA.
+- Sanitized HTML account/lifecycle templates and upload-request notifications; share state filters and pagination.
 - Grouped system settings with help: application name/URL, login message, default language, share expiry/password policies, session lifetime and consistent SQLite export.
 - Separate cleanup worker for expired/revoked files, every five minutes.
 - SMTP settings, verified STARTTLS/SSL, explicit test email, editable French/English templates, per-recipient notifications with automatic CC/BCC, persistent outbox and safe delivery diagnostics.
@@ -27,7 +29,7 @@ An independent, Docker-first file-sharing project with a French and English inte
 
 ## Not implemented yet
 
-Verified self-registration/email changes, per-user quotas, external identity providers (SSO) and antivirus. There is no end-to-end encryption or completed security audit. See [the roadmap](docs/PROJECT.md).
+Antivirus, webhooks and end-to-end encryption. Google/Microsoft provider activation requires your own client credentials; no organization credentials are bundled. There is no end-to-end encryption or completed security audit. See [the roadmap](docs/PROJECT.md).
 
 ## Try locally with Docker
 
@@ -84,3 +86,7 @@ The 14 adapted Erugo theme palettes retain their upstream MIT attribution in [th
 ## Remote storage
 
 Local disk remains active unless explicitly changed. Choose and configure local, S3 or SFTP from Administration → Storage. Remote settings are tested before saving, with password reauthentication and a second factor when enabled. Stored credentials are never returned by the API; blank secret fields preserve them. Changes are picked up by the web processes and worker without a Docker restart. See [STORAGE.md](docs/STORAGE.md) for server-key verification, private bucket requirements, credential protection, backup behavior and optional operator-mounted configuration. No existing live provider has been configured automatically.
+
+## License and operations
+
+[GNU AGPL v3](LICENSE) (`AGPL-3.0-only`). Copyright 2026 Passelio contributors. Third-party palette notices remain in `third_party/`. Modified network deployments must provide their corresponding source as required by the license. See [accounts and SSO](docs/ACCOUNTS.md) and [upgrade/rollback](docs/UPGRADE.md).

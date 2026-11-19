@@ -72,3 +72,16 @@ Upload completion status now recognizes an already completed file after a lost H
 ## Alpha.10 interface storage configuration
 
 All 63 tests pass locally. Six new cases cover admin/CSRF/password/MFA enforcement, SFTP password and encrypted-SSH-key configuration, secret preservation/redaction, staged-secret cleanup on failed connection tests, in-use identity guards, stale runtime bindings, concurrent revision rejection, S3 field validation, multi-process hot refresh and restore resetting GUI settings. Existing SDK/real-loopback-SFTP and transfer/backup tests continue to pass. No real external credentials or storage destination were configured in the preview.
+
+
+## Alpha.11 account lifecycle and distribution
+
+The 76-case full suite passed locally before the additional Microsoft tenant case; Google/Microsoft token exchange is mocked with real signed RS256 tokens. Tests cover explicit linking, no email auto-linking, state/nonce/issuer/audience/expiry, flow replay, local MFA/CSRF, registration ownership, single-use verified email changes, session revocation, individual quota reservation, sanitized multipart email and upload-only request notifications. CI reruns the final suite, dependency audit, JavaScript syntax, Docker build and isolated concurrency check.
+
+`python scripts/load_check.py` passed eight concurrent 1 MiB upload/download transfers with matching SHA-256 checksums (0.86 seconds on the development machine). This is a Flask-client smoke benchmark, not a production HTTP, reverse-proxy or capacity certification.
+
+An isolated SFTPGo v2.7.6 container passed pinned-host-key connection checks, 1,480,000-byte upload/download SHA-256 verification and repeated deletion. No existing SFTPGo accounts or company backup data were modified; the temporary container was removed.
+
+Live S3 testing was attempted against an isolated SeaweedFS server. The development TLS forwarding harness needed HTTP chunked-transfer handling; before the corrected harness could finish, the VM SSH connection became unavailable. Therefore live S3 compatibility is **not validated** in this milestone. Existing Boto3 Stubber and storage/backup tests pass. The temporary loopback-only `passelio-s3-integration` container still requires removal when SSH access returns.
+
+Optional provider sign-in is disabled until the operator supplies their own OAuth application credentials. No real Microsoft/Google tenant login, independent security audit or public production certification has been completed. GHCR publication is performed only after CI succeeds; package visibility is separate from image creation.

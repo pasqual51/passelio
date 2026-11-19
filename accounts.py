@@ -46,6 +46,9 @@ def init_accounts(app, db, root, protected, fail, audit, rate_limit):
                   (aid, hashlib.sha256(token.encode()).hexdigest(), uid, purpose,
                    int(time.time()) + (86400 if purpose == 'invite' else 3600)))
         app.enqueue_mail(c, uid, email, language, share_id=aid, kind='account')
+        return aid
+
+    app.issue_account_action=issue
 
     @app.post('/api/account/recover')
     def recover():
@@ -58,7 +61,7 @@ def init_accounts(app, db, root, protected, fail, audit, rate_limit):
             return fail('rate_limited', 429)
         allowed = rate_limit('recover-account:' + hashlib.sha256(email.encode()).hexdigest(), 3)
         with db(True) as c:
-            u = c.execute('SELECT * FROM users WHERE email=? AND active=1', (email,)).fetchone()
+            u = c.execute('SELECT * FROM users WHERE email=? AND active=1 AND email_verified=1', (email,)).fetchone()
             if u and allowed and app.mail_settings(c)['enabled']:
                 issue(c, u['id'], u['email'], 'fr' if body.get('language') == 'fr' else 'en', 'reset')
         # Never reveal account existence or SMTP availability.
@@ -95,11 +98,11 @@ def init_accounts(app, db, root, protected, fail, audit, rate_limit):
             return fail('rate_limited', 429)
         with db(True) as c:
             row = c.execute('SELECT a.* FROM account_actions a JOIN users u ON u.id=a.user_id '
-                            'WHERE token_hash=? AND used=0 AND expires>? AND u.active=1',
+                            "WHERE token_hash=? AND used=0 AND purpose IN ('invite','reset','register') AND expires>? AND u.active=1",
                             (hashlib.sha256(token.encode()).hexdigest(), time.time())).fetchone()
             if not row:
                 return fail('account_link_invalid', 410)
-            c.execute('UPDATE users SET password=? WHERE id=?', (generate_password_hash(password), row['user_id']))
+            c.execute("UPDATE users SET password=?,email_verified=CASE WHEN ? IN ('invite','register') THEN 1 ELSE email_verified END WHERE id=?", (generate_password_hash(password),row['purpose'], row['user_id']))
             c.execute('DELETE FROM sessions WHERE user_id=?', (row['user_id'],))
             c.execute('UPDATE account_actions SET used=1 WHERE user_id=?', (row['user_id'],))
             audit(c, 'user.account_completed', str(row['user_id']))
@@ -108,7 +111,7 @@ def init_accounts(app, db, root, protected, fail, audit, rate_limit):
     @app.get('/api/me/profile')
     @protected()
     def profile():
-        return jsonify(email=g.user['email'], display_name=g.user['display_name'])
+        return jsonify(email=g.user['email'], display_name=g.user['display_name'],email_verified=bool(g.user['email_verified']))
 
     @app.patch('/api/me/profile')
     @protected()
@@ -131,7 +134,7 @@ def init_accounts(app, db, root, protected, fail, audit, rate_limit):
         invite = action['purpose'] == 'invite'
         subject = ('Votre invitation Passelio' if invite else 'Réinitialiser votre mot de passe') if fr else (
             'Your Passelio invitation' if invite else 'Reset your password')
-        url = app.system_settings()['application_url'] + '/#account=' + token_for(action['id'])
+        url = app.system_settings()['application_url'] + ('/#verify=' if action['purpose']=='change_email' else '/#account=') + token_for(action['id'])
         body = ('Choisissez votre mot de passe avec ce lien personnel, à usage unique :\n' if fr else
                 'Choose your password using this personal, single-use link:\n') + url
         body += ('\n\nSi vous n’avez rien demandé, ignorez ce message.' if fr else
@@ -140,4 +143,11 @@ def init_accounts(app, db, root, protected, fail, audit, rate_limit):
             return app.render_message_template(action['purpose'], job['language'], dict(url=url,title='',sender='',expiry=''))
         return subject, body
 
+    def render_account_html(job):
+        with db() as c:
+            action=c.execute('SELECT purpose,id FROM account_actions WHERE id=? AND user_id=? AND used=0 AND expires>?',(job['share_id'],job['owner'],time.time())).fetchone()
+        if not action:raise ValueError('mail_cancelled')
+        url=app.system_settings()['application_url']+('/#verify=' if action['purpose']=='change_email' else '/#account=')+token_for(action['id'])
+        return app.render_html_template(action['purpose'],job['language'],dict(url=url,title='',sender='',expiry=''))
+    app.render_account_html=render_account_html
     app.render_account_mail = render_account_mail

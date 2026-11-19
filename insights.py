@@ -4,8 +4,12 @@ import json
 import time
 from string import Template
 from flask import g, jsonify, request
+from email_layout import render as render_html,validate_fields,sanitize
 
 DEFAULTS = {
+    'request': {'en':{'subject':'File request: ${title}','body':'Upload your files here: ${url}'},'fr':{'subject':'Demande de fichiers : ${title}','body':'Déposez vos fichiers ici : ${url}'}},
+    'register': {'en':{'subject':'Create your Passelio account','body':'Choose your password using this single-use link: ${url}'},'fr':{'subject':'Créer votre compte Passelio','body':'Choisissez votre mot de passe avec ce lien à usage unique : ${url}'}},
+    'change_email': {'en':{'subject':'Confirm your new email','body':'Confirm your new email using this single-use link: ${url}'},'fr':{'subject':'Confirmer votre nouvelle adresse mail','body':'Confirmez votre nouvelle adresse avec ce lien à usage unique : ${url}'}},
     'invite': {'en': {'subject':'Your Passelio invitation','body':'Choose your password: ${url}'},
                'fr': {'subject':'Votre invitation Passelio','body':'Choisissez votre mot de passe : ${url}'}},
     'reset': {'en': {'subject':'Reset your password','body':'Use this personal single-use link: ${url}\nIf you did not request this, ignore this message.'},
@@ -37,6 +41,18 @@ def init_insights(app,db,protected,fail,audit):
         with db() as c:choice=template(c,kind,language)
         return (Template(choice['subject']).substitute(values),Template(choice['body']).substitute(values))
     app.render_message_template=render
+    def html_template(kind,language,values):
+        with db() as c:choice=template(c,kind,language)
+        return render_html(choice,values,app.system_settings()['application_name'],language)
+    app.render_html_template=html_template
+
+    @app.post('/api/admin/templates/preview')
+    @protected(admin=True)
+    def preview_template():
+        body=request.get_json(silent=True) or {}
+        if not validate_fields(body):return fail('invalid_input')
+        return jsonify(html=render_html(body,dict(title='Example / Exemple',url='https://example.invalid/s/demo',expiry='2030-01-01',sender='sender@example.invalid'),app.system_settings()['application_name'],'fr'))
+
 
     @app.get('/api/admin/templates')
     @protected(admin=True)
@@ -51,13 +67,9 @@ def init_insights(app,db,protected,fail,audit):
     def save_template(kind,language):
         if kind not in DEFAULTS or language not in ('fr','en'):return fail('invalid_input')
         body=request.get_json(silent=True) or {}
-        if set(body)!={'subject','body'}:return fail('invalid_input')
-        for name,maximum in [('subject',200),('body',10000)]:
-            value=body[name]
-            if not isinstance(value,str) or not value.strip() or len(value)>maximum or '\r' in value or (name=='subject' and '\n' in value):return fail('invalid_input')
-            try:Template(value).substitute(title='Title',url='https://example.invalid/',expiry='Date',sender='sender@example.invalid')
-            except (KeyError,ValueError):return fail('invalid_input')
-        if kind in ('invite','reset') and '${url}' not in body['body']:return fail('invalid_input')
+        if not validate_fields(body):return fail('invalid_input')
+        if body.get('html'):body['html']=sanitize(body['html'])
+        if kind in ('invite','reset','register','change_email') and '${url}' not in body['body']:return fail('invalid_input')
         with db(True) as c:
             c.execute('INSERT INTO message_templates VALUES(?,?,?) ON CONFLICT(kind,language) DO UPDATE SET value=excluded.value',
                       (kind,language,json.dumps(body)))
@@ -93,6 +105,7 @@ def init_insights(app,db,protected,fail,audit):
                     expiry=datetime.datetime.fromtimestamp(share['expires'],datetime.timezone.utc).isoformat())
         return render(job['kind'],job['language'],values)
     app.render_lifecycle_mail=lifecycle_message
+    app.render_message_template=render
     previous_cleanup=app.cleanup
     def cleanup():
         with db(True) as c:

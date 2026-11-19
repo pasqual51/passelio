@@ -41,3 +41,5 @@ smtp-password
 .backup-*/
 .restore-*/
 .database-export-*/
+
+oidc-secrets/

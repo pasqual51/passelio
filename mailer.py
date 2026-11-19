@@ -136,11 +136,23 @@ def init_mail(app,db,root):
                     subject, body = app.render_account_mail(job)
                     msg['Subject'] = subject
                     msg.set_content(body)
+                    msg.add_alternative(app.render_account_html(job),subtype='html')
+                elif job['kind']=='request':
+                    values=app.request_mail_values(job['share_id'])
+                    subject,body=app.render_message_template('request',job['language'],values)
+                    msg['Subject']=subject
+                    msg.set_content(body)
+                    msg.add_alternative(app.render_html_template('request',job['language'],values),subtype='html')
                 elif job['kind'] in ('download','expiring','expired','revoked'):
                     if not share:raise ValueError('mail_cancelled')
                     subject, body = app.render_lifecycle_mail(job,share,account)
                     msg['Subject']=subject
                     msg.set_content(body)
+                    values=dict(title=share['title'],url=app.system_settings()['application_url']+'/s/'+share['id'],expiry=str(share['expires']),sender=account['email'])
+                    msg.add_alternative(app.render_html_template(job['kind'],job['language'],values),subtype='html')
+                elif job['kind']=='email_changed':
+                    msg['Subject']='Adresse mail modifiée' if job['language']=='fr' else 'Email address changed'
+                    msg.set_content('Votre adresse de connexion Passelio a été modifiée. Contactez votre administrateur si vous n’êtes pas à l’origine de cette action.' if job['language']=='fr' else 'Your Passelio login email was changed. Contact your administrator if you did not request this.')
                 elif job['kind']=='test':
                     msg['Subject']='Passelio — Test SMTP' if job['language']=='fr' else 'Passelio — SMTP test'
                     msg.set_content('Test SMTP envoyé par Passelio.' if job['language']=='fr' else 'SMTP test sent by Passelio.')
@@ -150,6 +162,8 @@ def init_mail(app,db,root):
                     template=config['templates'][job['language']]
                     msg['Subject']=Template(template['subject']).substitute(values)
                     msg.set_content(Template(template['body']).substitute(values))
+                    from email_layout import render as render_html
+                    msg.add_alternative(render_html(template,values,app.system_settings()['application_name'],job['language']),subtype='html')
                 if config['security']=='plain' and not app.config.get('ALLOW_INSECURE_SMTP',False):
                     raise ValueError('smtp_tls_required')
                 cls=smtplib.SMTP_SSL if config['security']=='ssl' else smtplib.SMTP

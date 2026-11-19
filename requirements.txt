@@ -22,3 +22,9 @@ urllib3==2.8.0
 cffi==2.1.1
 pycparser==3.12
 six==1.17.0
+Authlib==1.9.9
+requests==2.34.2
+joserfc==1.8.0
+charset-normalizer==3.5.2
+idna==3.20
+certifi==2026.10.23

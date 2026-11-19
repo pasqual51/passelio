@@ -66,6 +66,12 @@ def create(data,output,storage=None):
                 if 'mfa_factors' in tables:target.execute('UPDATE mfa_factors SET pending_id=NULL,pending_expires=0')
                 if 'backup_schedule' in tables:target.execute('UPDATE backup_schedule SET enabled=0,requested=0,lease_until=0')
                 if 'backup_archives' in tables:target.execute('DELETE FROM backup_archives')
+                for transient in ('oidc_flows','oidc_pending'):
+                    if transient in tables:target.execute('DELETE FROM '+transient)
+                if 'identity_config' in tables:
+                    for provider,value in target.execute('SELECT provider,value FROM identity_config').fetchall():
+                        cfg=json.loads(value);cfg['enabled']=False;cfg['secret_file']=None
+                        target.execute('UPDATE identity_config SET value=?,revision=? WHERE provider=?',(json.dumps(cfg),'restored',provider))
                 if 'storage_settings' in tables:target.execute('DELETE FROM storage_settings')
                 if 'storage_bindings' in tables:target.execute("DELETE FROM storage_bindings WHERE name!='local'")
                 if 'storage_deletions' in tables:target.execute('DELETE FROM storage_deletions')
