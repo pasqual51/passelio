@@ -91,3 +91,7 @@ Local disk remains active unless explicitly changed. Choose and configure local,
 ## License and operations
 
 [GNU AGPL v3](LICENSE) (`AGPL-3.0-only`). Copyright 2026 Passelio contributors. Third-party palette notices remain in `third_party/`. Modified network deployments must provide their corresponding source as required by the license. See [accounts and SSO](docs/ACCOUNTS.md) and [upgrade/rollback](docs/UPGRADE.md).
+
+## Private Unraid trial
+
+A French setup guide and two native Unraid templates are available in [docs/UNRAID.fr.md](docs/UNRAID.fr.md). They pin the validated alpha.14 digest and prepare a fresh private test installation; no deployment is performed automatically. Independent-review scope and evidence are collected in [the audit handoff](docs/security/INDEPENDENT-AUDIT-HANDOFF.md).

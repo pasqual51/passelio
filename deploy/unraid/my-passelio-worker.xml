@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Container version="2">
+  <Name>passelio-worker</Name>
+  <Repository>ghcr.io/pasqual51/passelio@sha256:cbfae5c9266051f1b68a63c1de1144f7722b1803a84ad0976804d4fdf207c05d</Repository>
+  <Registry>https://github.com/pasqual51/passelio/pkgs/container/passelio</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Project>https://github.com/pasqual51/passelio</Project>
+  <Overview>Worker Passelio alpha.14 : emails, nettoyage et sauvegardes. Démarrer après le serveur web. Utiliser exactement la même image, les mêmes dossiers, la même adresse administrateur et la même URL que passelio. Aucun port publié.</Overview>
+  <Category>Productivity:</Category>
+  <WebUI/>
+  <ExtraParams>--read-only --cap-drop=ALL --security-opt=no-new-privileges:true --tmpfs /tmp:rw,nosuid,noexec,size=16m,mode=1777 --memory=256m --pids-limit=64 --no-healthcheck --init</ExtraParams>
+  <PostArgs>python worker.py</PostArgs>
+  <Config Name="Données privées" Target="/data" Default="/mnt/cache/appdata/passelio/data" Mode="rw" Description="Exactement le même chemin que le serveur web." Type="Path" Display="always" Required="true" Mask="false">/mnt/cache/appdata/passelio/data</Config>
+  <Config Name="Archives de sauvegarde" Target="/backups" Default="/mnt/cache/appdata/passelio/backups" Mode="rw" Description="Exactement le même chemin que le serveur web." Type="Path" Display="always" Required="true" Mask="false">/mnt/cache/appdata/passelio/backups</Config>
+  <Config Name="Secret administrateur initial" Target="/run/secrets/admin_password" Default="/mnt/cache/appdata/passelio/secrets/admin_password.txt" Mode="ro" Description="Même fichier que le serveur web ; ne pas en copier le contenu ici." Type="Path" Display="always" Required="true" Mask="false">/mnt/cache/appdata/passelio/secrets/admin_password.txt</Config>
+  <Config Name="Adresse administrateur" Target="ADMIN_EMAIL" Default="" Mode="" Description="Même adresse que dans passelio." Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="URL LAN exacte" Target="BASE_URL" Default="" Mode="" Description="Même URL que dans passelio, port compris." Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="Cookies HTTPS" Target="SECURE_COOKIES" Default="false" Mode="" Description="Même valeur que dans passelio." Type="Variable" Display="advanced" Required="true" Mask="false">false</Config>
+  <Config Name="Chemin données interne" Target="DATA_DIR" Default="/data" Mode="" Description="Chemin interne fixe." Type="Variable" Display="advanced" Required="true" Mask="false">/data</Config>
+  <Config Name="Chemin sauvegardes interne" Target="BACKUP_DIR" Default="/backups" Mode="" Description="Chemin interne fixe." Type="Variable" Display="advanced" Required="true" Mask="false">/backups</Config>
+  <Config Name="Chemin secret interne" Target="ADMIN_PASSWORD_FILE" Default="/run/secrets/admin_password" Mode="" Description="Chemin du secret monté en lecture seule." Type="Variable" Display="advanced" Required="true" Mask="false">/run/secrets/admin_password</Config>
+</Container>
