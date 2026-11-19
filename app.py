@@ -232,7 +232,7 @@ def create_app(config=None):
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="0.1.0-alpha.12")
+        return jsonify(status="ok", version="0.1.0-alpha.13")
 
     @app.get('/api/config')
     def public_config():
@@ -527,7 +527,7 @@ def create_app(config=None):
                         files=c.execute('SELECT count(*) FROM files WHERE ready=1').fetchone()[0],
                         used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0],
                         cleanup_bytes=c.execute('SELECT coalesce(sum(size),0) FROM files JOIN shares ON shares.id=files.share_id WHERE revoked=1 OR expires<=?',(time.time(),)).fetchone()[0],
-                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.12')
+                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.13')
         return jsonify(result)
 
     @app.get('/api/admin/users')
