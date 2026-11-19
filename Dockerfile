@@ -2,6 +2,7 @@ FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 DATA_DIR=/data
 WORKDIR /app
 COPY requirements.txt .
+COPY scripts/prune_runtime.py /tmp/prune_runtime.py
 RUN apt-get update \
     && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/* \
@@ -11,6 +12,8 @@ RUN apt-get update \
     && python -c "import pathlib,shutil,sysconfig; shutil.rmtree(pathlib.Path(sysconfig.get_path('stdlib')) / 'ensurepip')" \
     && groupadd --gid 10001 passelio \
     && useradd --uid 10001 --gid 10001 --no-create-home passelio \
+    && python /tmp/prune_runtime.py \
+    && python -c "import pathlib; pathlib.Path('/tmp/prune_runtime.py').unlink()" \
     && mkdir /data /backups && chown 10001:10001 /data /backups
 COPY app.py mailer.py branding.py accounts.py account_policy.py identity.py email_layout.py transfers.py insights.py requests_upload.py backup.py backup_manager.py mfa.py blobstore.py storage_gui.py themes.py worker.py ./
 COPY third_party/ ./third_party/

@@ -4,7 +4,7 @@
 
 An independent, Docker-first file-sharing project with a French and English interface.
 
-**Status: private alpha, 0.1.0-alpha.13. Not production-ready.** Full Erugo feature parity is not yet reached. Licensed under AGPL-3.0-only. Versioned alpha container publication is configured for GitHub Container Registry; package access depends on repository/package visibility.
+**Status: private alpha, 0.1.0-alpha.14. Not production-ready.** Full Erugo feature parity is not yet reached. Licensed under AGPL-3.0-only. Versioned alpha container publication is configured for GitHub Container Registry; package access depends on repository/package visibility.
 
 ## Implemented
 
