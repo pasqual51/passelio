@@ -1,0 +1,70 @@
+name: Published image security review
+on:
+  push:
+    branches: [codex/initial-alpha]
+    paths: [.github/workflows/image-security.yml]
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Published Passelio commit image tag
+        required: true
+        default: ghcr.io/pasqual51/passelio:sha-32f59c58b8fece7966548a9fba85ab5dfceeae3f
+permissions:
+  contents: read
+  packages: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      IMAGE: ${{ inputs.image || 'ghcr.io/pasqual51/passelio:sha-32f59c58b8fece7966548a9fba85ab5dfceeae3f' }}
+    steps:
+      - name: Validate image reference
+        run: |
+          case "$IMAGE" in ghcr.io/pasqual51/passelio:sha-*) ;; *) echo 'Only Passelio commit image tags are accepted'; exit 1;; esac
+      - name: Install verified scanner release
+        run: |
+          curl --fail --location --retry 3 --output /tmp/trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.76.2/trivy_0.76.2_Linux-64bit.tar.gz
+          echo 'bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf  /tmp/trivy.tar.gz' | sha256sum --check
+          tar -xzf /tmp/trivy.tar.gz -C /tmp trivy
+          /tmp/trivy --version
+      - name: Authenticate to private package
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+        run: echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
+      - name: Resolve and inspect exact image
+        run: |
+          mkdir reports
+          docker pull "$IMAGE"
+          docker image inspect "$IMAGE" > reports/image-inspect.json
+          DIGEST=$(docker image inspect "$IMAGE" --format '{{index .RepoDigests 0}}')
+          echo "TARGET_IMAGE=$DIGEST" >> "$GITHUB_ENV"
+          printf '%s\n' "$DIGEST" > reports/image-digest.txt
+      - name: Scan OS packages, language packages and embedded secrets
+        run: |
+          /tmp/trivy image --image-src docker --scanners vuln,secret --pkg-types os,library --list-all-pkgs --ignore-unfixed=false --timeout 15m --format json --output reports/trivy.json "$TARGET_IMAGE"
+          /tmp/trivy --version > reports/scanner-version.txt
+      - name: Summarize results
+        run: |
+          python - <<'PY'
+          import collections,json,os
+          from pathlib import Path
+          report=json.loads(Path('reports/trivy.json').read_text())
+          rows=[]
+          for result in report.get('Results',[]):
+              vulnerabilities=result.get('Vulnerabilities',[])
+              rows.append({'target':result['Target'],'class':result.get('Class'),'type':result.get('Type'),'packages':len(result.get('Packages',[])),'vulnerabilities':dict(collections.Counter(v['Severity'] for v in vulnerabilities)),'with_fix':sum(bool(v.get('FixedVersion')) for v in vulnerabilities),'secret_findings':len(result.get('Secrets',[]))})
+          Path('reports/summary.json').write_text(json.dumps({'image':os.environ['TARGET_IMAGE'],'os':report.get('Metadata',{}).get('OS'),'results':rows},indent=2))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('# Published image security scan\n\nImage: `'+os.environ['TARGET_IMAGE']+'`\n\n')
+              f.write('All severities and unfixed advisories are retained. A completed scan is not a clean-security certification.\n\n```json\n'+json.dumps(rows,indent=2)+'\n```\n')
+          print(json.dumps(rows))
+          PY
+      - name: Retain complete evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: passelio-image-security
+          path: reports/
+          retention-days: 30
