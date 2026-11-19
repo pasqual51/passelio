@@ -4,11 +4,12 @@
 
 An independent, Docker-first file-sharing project with a French and English interface.
 
-**Status: private alpha, 0.1.0-alpha.11. Not production-ready.** Full Erugo feature parity is not yet reached. Licensed under AGPL-3.0-only. Versioned alpha container publication is configured for GitHub Container Registry; package access depends on repository/package visibility.
+**Status: private alpha, 0.1.0-alpha.12. Not production-ready.** Full Erugo feature parity is not yet reached. Licensed under AGPL-3.0-only. Versioned alpha container publication is configured for GitHub Container Registry; package access depends on repository/package visibility.
 
 ## Implemented
 
 - Responsive interface and original SVG logo; French/English switching and saved preferences.
+- Vertical home navigation with dedicated sharing, email-link delivery, requests, email history and profile/security sections.
 - Visual identity settings: validated custom logo/favicon/backgrounds, rotation, 17 theme presets, color editor and data-only theme JSON import/export.
 - Initial administrator, user creation/invitations, single-use password recovery, profile names, login/logout and password changes.
 - Optional TOTP two-factor authentication, replay protection and hashed one-use recovery codes.

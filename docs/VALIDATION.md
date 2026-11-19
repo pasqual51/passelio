@@ -85,3 +85,8 @@ An isolated SFTPGo v2.7.6 container passed pinned-host-key connection checks, 1,
 Live S3 testing was completed on 2026-11-19 against an isolated SeaweedFS server through a TLS-verified Nginx endpoint and an SSH tunnel. Single-part (1 MiB) and multipart (9 MiB) upload/download SHA-256 checks and repeated deletion passed. An application-level test also passed resumable upload, password-gated download, local spool removal, full backup/verify/local restore and remote cleanup. Both temporary containers, fixture certificates and the SSH tunnels were removed. See SECURITY-REVIEW-2026-11-19.md for scope and limitations.
 
 Optional provider sign-in is disabled until the operator supplies their own OAuth application credentials. No real Microsoft/Google tenant login, independent security audit or public production certification has been completed. GHCR publication is performed only after CI succeeds; package visibility is separate from image creation.
+
+
+## Alpha.12 home navigation and share-link email
+
+Home now groups existing functions in a vertical navigation. A dedicated email panel selects an active owned share, copies its link and sends it through the existing authenticated SMTP outbox. Successful uploads open that panel automatically; existing shares open it from their notification action. English/French labels, empty state, creating a test upload and selecting an existing share were verified in the browser. The ten SMTP/outbox tests pass, and translation parity includes the new navigation keys. No external recipient was contacted during the UI check.

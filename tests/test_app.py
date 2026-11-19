@@ -127,6 +127,7 @@ def test_translation_keys_match():
     source+=(Path(__file__).parents[1]/'static/mail.js').read_text(encoding='utf-8').split('let mailConfig=')[0]
     source+=(Path(__file__).parents[1]/'static/system.js').read_text(encoding='utf-8').split('let systemConfig=')[0]
     source+=(Path(__file__).parents[1]/'static/branding.js').read_text(encoding='utf-8').split('let brandingData=')[0]
+    source+=(Path(__file__).parents[1]/'static/home.js').read_text(encoding='utf-8').split('const homeLayout=')[0]
     code=source+'\nconsole.log(JSON.stringify(Object.fromEntries(Object.entries(translations).map(([k,v])=>[k,Object.keys(v).sort()]))));'
     result=subprocess.run(['node'],input=code,capture_output=True,text=True,encoding='utf-8',check=True)
     keys=json.loads(result.stdout)
