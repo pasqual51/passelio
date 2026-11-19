@@ -7,6 +7,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && python -m pip install --no-cache-dir --upgrade pip==26.3 \
     && python -m pip install --no-cache-dir -r requirements.txt \
+    && python -m pip uninstall --yes pip \
+    && python -c "import pathlib,shutil,sysconfig; shutil.rmtree(pathlib.Path(sysconfig.get_path('stdlib')) / 'ensurepip')" \
     && groupadd --gid 10001 passelio \
     && useradd --uid 10001 --gid 10001 --no-create-home passelio \
     && mkdir /data /backups && chown 10001:10001 /data /backups

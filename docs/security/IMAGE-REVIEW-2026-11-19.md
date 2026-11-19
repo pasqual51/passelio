@@ -30,9 +30,9 @@ Complete normalized findings: [CSV](image-alpha12-2026-11-19.csv). Original JSON
 
 ## Remediation and release controls
 
-Alpha.13 rebuilds the pinned Python base with all available Debian package upgrades and explicitly installs pip 26.3 before the application requirements. Existing running services are not modified by a source/image rebuild.
+Alpha.13 rebuilds the pinned Python base with all available Debian package upgrades and explicitly uses pip 26.3 to install the application requirements. It then removes pip and ensurepip from the runtime image, including pip's vendored components. The first candidate's scanner gate caught a vendored setuptools inventory finding, so that candidate was not published; removing the unneeded installer addresses this rather than suppressing the scanner. Existing running services are not modified by a source/image rebuild.
 
-Publication now scans the built candidate, keeps all severities and unfixed findings in its artifact, and blocks fixable high/critical OS findings, any fixable Python finding, or embedded secrets. A separate runtime check verifies the patched zlib package and pip versions, UID 10001, login and checksum-verified upload/download with no network and a read-only root filesystem. These checks must succeed before an image is pushed.
+Publication now scans the built candidate, keeps all severities and unfixed findings in its artifact, and blocks fixable high/critical OS findings, any fixable Python finding, or embedded secrets. A separate runtime check verifies the patched zlib package, absence of pip/ensurepip, UID 10001, login and checksum-verified upload/download with no network and a read-only root filesystem. These checks must succeed before an image is pushed. Package updates require rebuilding the image; interactive pip installation is intentionally unavailable in the final runtime.
 
 The corrected candidate's result is recorded separately after the build completes. There is no claim that all unfixed Debian findings disappear.
 

@@ -1,6 +1,7 @@
 """Run inside the candidate image with no network and a read-only root filesystem."""
 import hashlib
 import importlib.metadata
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -13,7 +14,8 @@ sys.path.insert(0,'/app')
 from app import create_app
 
 assert os.getuid()==10001,'Container must run without root privileges'
-assert importlib.metadata.version('pip')=='26.3'
+assert importlib.util.find_spec('pip') is None,'Package installer must not remain in the runtime image'
+assert importlib.util.find_spec('ensurepip') is None,'Bundled installer must not remain in the runtime image'
 zlib_package=subprocess.check_output(['dpkg-query','-W','-f=${Version}','zlib1g'],text=True).strip()
 subprocess.run(['dpkg','--compare-versions',zlib_package,'ge','1:1.3.dfsg+really1.3.1-1+deb13u1'],check=True)
 with tempfile.TemporaryDirectory(prefix='passelio-smoke-') as directory:
@@ -31,4 +33,4 @@ with tempfile.TemporaryDirectory(prefix='passelio-smoke-') as directory:
     response=c.get('/api/public/'+sid+'/files/'+fid)
     assert response.status_code==200 and hashlib.sha256(response.data).digest()==hashlib.sha256(data).digest()
     response.close()
-print(json.dumps({'uid':os.getuid(),'pip':importlib.metadata.version('pip'),'zlib_debian_package':zlib_package,'health_login_upload_download':'passed','network':'disabled','root_filesystem':'read_only'}))
+print(json.dumps({'uid':os.getuid(),'pip':'absent','ensurepip':'absent','zlib_debian_package':zlib_package,'health_login_upload_download':'passed','network':'disabled','root_filesystem':'read_only'}))
