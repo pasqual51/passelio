@@ -23,11 +23,36 @@ An isolated dry run and actual package-removal trial passed; Python SQLite, TLS,
 | [CVE-2025-69720](https://security-tracker.debian.org/tracker/CVE-2025-69720) | The `infocmp` terminal-description CLI | Remove unneeded `libncursesw6`; retain libtinfo/readline and Essential ncurses packages. `infocmp` remains part of Essential ncurses-bin but is not called by Passelio or exposed through HTTP. Removing all ncurses packages would break dependency consistency. |
 | [CVE-2026-9538](https://security-tracker.debian.org/tracker/CVE-2026-9538) | Perl `Archive::Tar` parsing of crafted headers | Only minimal perl-base is retained for Essential distribution tools. `perl -MArchive::Tar` confirms the affected module is not installed. Passelio backups use Python zipfile and never invoke Perl. Keep the raw source-package match; do not install additional Perl archive modules without reassessment. |
 | [CVE-2026-119373](https://security-tracker.debian.org/tracker/CVE-2026-119373) | FTS5 detail=none prefix MATCH queries and attacker-controlled rowids | SQLite is required for application data. Passelio creates normal tables only, uses parameterized SQL, offers no arbitrary-SQL endpoint and has no FTS5/MATCH feature. Uploaded files are not opened as databases. The compiled library remains affected; keep the finding and monitor the vendor. |
-| [CVE-2026-119374](https://security-tracker.debian.org/tracker/CVE-2026-119374) | A corrupted FTS5 index deleted with secure-delete enabled | No FTS5 table or secure-delete operation exists in application paths. Offline database restore is an operator trust boundary: accept only verified backups from trusted origins. Do not infer that opening arbitrary attacker-supplied databases is safe. |
+| [CVE-2026-119374](https://security-tracker.debian.org/tracker/CVE-2026-119374) | A corrupted FTS5 index deleted with secure-delete enabled | The application schema contains no FTS5 table/index. The distribution library has SECURE_DELETE compiled in, so disabling secure-delete is not claimed as a mitigation. Offline database restore is an operator trust boundary: accept only verified backups from trusted origins. Do not infer that opening arbitrary attacker-supplied databases is safe. |
 | [CVE-2026-119379](https://security-tracker.debian.org/tracker/CVE-2026-119379) | Crafted session changesets passed to sqlite3changeset_apply | The SQLite session changeset API is not used or exposed by Passelio's Python database layer. The library is retained and inventoried; adding replication/change-set import would invalidate this assessment. |
 
 ## Boundaries and follow-up
 
 The default Compose configuration runs UID 10001, drops all capabilities, enables no-new-privileges and mounts the root filesystem read-only. An operator who overrides those controls changes this assessment. These conclusions do not cover a compromised host, a privileged container or arbitrary code execution by an administrator.
 
-No Debian experimental/unstable packages, custom replacement native libraries or scanner ignore rules were introduced. Packages still required by the supported distribution and application are retained. Final counts and runtime evidence are recorded after the alpha.14 image scan; eliminating duplicate package matches is not the same as patching all eleven advisory IDs.
+No Debian experimental/unstable packages, custom replacement native libraries or scanner ignore rules were introduced. Packages still required by the supported distribution and application are retained. Eliminating duplicate package matches is not the same as patching all eleven advisory IDs.
+
+
+## Validated alpha.14 result
+
+Published digest: `ghcr.io/pasqual51/passelio@sha256:cbfae5c9266051f1b68a63c1de1144f7722b1803a84ad0976804d4fdf207c05d`.
+Immutable source tag: `ghcr.io/pasqual51/passelio:sha-7b30ff732f4f6a002dccd45ec4b4148f9f443e82`.
+[Successful build, scan, runtime verification and publication](https://github.com/pasqual51/passelio/actions/runs/44479152264); full evidence is in its `passelio-candidate-security` artifact (30-day retention).
+
+| Measurement | Alpha.13 | Alpha.14 |
+| --- | ---: | ---: |
+| Debian packages | 87 | 80 |
+| High matches | 47 | 38 |
+| Medium matches | 103 | 101 |
+| Low matches | 67 | 59 |
+| Unknown matches | 10 | 10 |
+| Total package/advisory matches | 227 | 208 |
+| Unique advisory IDs | 100 | 99 |
+| Unique high advisory IDs | 11 | 11 |
+| Critical matches / fixable matches / Python findings / secrets | 0 / 0 / 0 / 0 | 0 / 0 / 0 / 0 |
+
+Nineteen package/advisory pairs disappeared, including nine high matches, and no new pair was introduced. Complete unsuppressed findings: [CSV](image-alpha14-2026-11-19.csv).
+
+All 82 regression cases passed, including five removal-plan safety cases. The final container preserved UID 10001 and all Essential packages, passed `dpkg --audit`, and verified TLS CA trust, Python native module imports, login, SHA-256 upload/download, full backup/restore and PNG processing with no network/capabilities and a read-only root filesystem. The runtime inventory confirms `mount`, `umount`, `login`, `useradd`, apt and pip are absent; `infocmp` and `nsenter` remain in retained Essential packages. `systemd-homed`, `setfacl` and Perl `Archive::Tar` are absent. SQLite 3.46.1 retains compiled FTS5 and session support; the application schema does not use those features.
+
+The remaining 38 high matches have no fixed version in the scanner's current Debian data. They are retained for vendor/reachability review, not waived as fixed. This remains an internally reviewed application image, not an independently certified or zero-vulnerability release. Existing running services were not redeployed by these image-build changes.
