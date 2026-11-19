@@ -34,6 +34,27 @@ Alpha.13 rebuilds the pinned Python base with all available Debian package upgra
 
 Publication now scans the built candidate, keeps all severities and unfixed findings in its artifact, and blocks fixable high/critical OS findings, any fixable Python finding, or embedded secrets. A separate runtime check verifies the patched zlib package, absence of pip/ensurepip, UID 10001, login and checksum-verified upload/download with no network and a read-only root filesystem. These checks must succeed before an image is pushed. Package updates require rebuilding the image; interactive pip installation is intentionally unavailable in the final runtime.
 
-The corrected candidate's result is recorded separately after the build completes. There is no claim that all unfixed Debian findings disappear.
+## Validated alpha.13 result
+
+Published image: `ghcr.io/pasqual51/passelio@sha256:18778d1f6cdd6368cb28477952c00cd4057cf9601d681c4d93ddc311b7d50e89`.
+Immutable commit tag: `ghcr.io/pasqual51/passelio:sha-f4d99c53349dfe2723aa6b39c1179821171963ee`.
+Release tag: `0.1.0-alpha.13`.
+
+The corrected image passes all 77 application tests, dependency/syntax/build checks, the pre-publication vulnerability/secret gate and the isolated non-root/read-only/no-network runtime check. Its publication completed successfully in [GitHub Actions](https://github.com/pasqual51/passelio/actions/runs/44476549705). Full scan evidence is retained in that run's `passelio-candidate-security` artifact for 30 days.
+
+| Result | Alpha.12 | Corrected alpha.13 |
+| --- | ---: | ---: |
+| Critical matches | 0 | 0 |
+| High matches | 48 | 47 |
+| Medium matches | 109 | 103 |
+| Low matches | 68 | 67 |
+| Unknown matches | 10 | 10 |
+| Matches with a vendor fix | 8 | 0 |
+| Python vulnerability matches | 6 | 0 |
+| Embedded secrets reported | 0 | 0 |
+
+All eight fixable baseline pairs disappeared, with no new package/advisory pair introduced in the final candidate. The remaining 227 pairs represent 100 unique advisory IDs and have no fixed version in the scanner's current Debian data. Of these, 47 are high matches (11 unique IDs). They remain visible and require ongoing vendor/reachability review; this is **not a zero-vulnerability image**. Corrected complete findings: [CSV](image-alpha13-2026-11-19.csv).
+
+The patch was applied to the image build and a new image was published. Existing running services were not restarted or silently redeployed. Deployments using alpha.12 or earlier must switch to the corrected digest/tag using the documented upgrade and backup procedure.
 
 Sources: [Debian zlib advisory](https://security-tracker.debian.org/tracker/CVE-2026-85091), [Debian util-linux status example](https://security-tracker.debian.org/tracker/CVE-2026-78408), [PyPA pip advisory](https://github.com/pypa/advisory-database/blob/main/vulns/pip/PYSEC-2026-3721.yaml), [Trivy immutable release](https://github.com/aquasecurity/trivy/releases/tag/v0.76.2).
