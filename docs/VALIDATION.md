@@ -76,7 +76,7 @@ All 63 tests pass locally. Six new cases cover admin/CSRF/password/MFA enforceme
 
 ## Alpha.11 account lifecycle and distribution
 
-The 76-case full suite passed locally before the additional Microsoft tenant case; Google/Microsoft token exchange is mocked with real signed RS256 tokens. Tests cover explicit linking, no email auto-linking, state/nonce/issuer/audience/expiry, flow replay, local MFA/CSRF, registration ownership, single-use verified email changes, session revocation, individual quota reservation, sanitized multipart email and upload-only request notifications. CI reruns the final suite, dependency audit, JavaScript syntax, Docker build and isolated concurrency check.
+All 77 cases pass locally, including the Microsoft single-tenant case; Google/Microsoft token exchange is mocked with real signed RS256 tokens. Tests cover explicit linking, no email auto-linking, state/nonce/issuer/audience/expiry, flow replay, local MFA/CSRF, registration ownership, single-use verified email changes, session revocation, individual quota reservation, sanitized multipart email and upload-only request notifications. CI reruns the final suite, dependency audit, JavaScript syntax, Docker build and isolated concurrency check.
 
 `python scripts/load_check.py` passed eight concurrent 1 MiB upload/download transfers with matching SHA-256 checksums (0.86 seconds on the development machine). This is a Flask-client smoke benchmark, not a production HTTP, reverse-proxy or capacity certification.
 
