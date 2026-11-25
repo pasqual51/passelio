@@ -1,6 +1,8 @@
-# Passelio — Alpha privée
+# Passelio — Alpha publique
 
 Passelio est une application indépendante de partage de fichiers, avec une interface en français et en anglais, un logo propre et une installation Docker.
+
+**Version 0.1.0-alpha.16 : publiée pour les essais, les retours et les contributions. Elle n'est pas prête pour la production et n'a pas fait l'objet d'un audit indépendant. Licence AGPL-3.0-only.**
 
 ## Ce qui fonctionne
 
@@ -19,11 +21,11 @@ Pour HTTPS, le reverse proxy et les sauvegardes, consulter [DEPLOYMENT.md](DEPLO
 
 ## Limites de cette version
 
-Cette alpha n'est pas prête pour la production. Les dossiers/ZIP, la reprise des transferts authentifiés, les demandes de dépôt, les invitations/récupérations de compte, la double authentification TOTP et les sauvegardes planifiées sont disponibles. Les quotas par utilisateur, SSO, la vérification/changement d’adresse e-mail et l’antivirus restent à développer. La parité complète avec Erugo n'est pas atteinte.
+Cette alpha n'est pas prête pour la production. Les dossiers/ZIP, la reprise des transferts authentifiés, les demandes de dépôt, les invitations/récupérations de compte, la double authentification TOTP et les sauvegardes planifiées sont disponibles. Les quotas par utilisateur, les connexions Google/Microsoft OIDC et la vérification/changement d’adresse e-mail sont également disponibles. L'antivirus, les webhooks et le chiffrement de bout en bout restent à développer. La parité complète avec Erugo n'est pas atteinte.
 
 La limite de téléchargements compte chaque requête de fichier, pas les personnes ni les partages complets. Après une interruption d’un envoi authentifié, sélectionnez les mêmes fichiers et réessayez pour reprendre ; les morceaux déjà transmis sont vérifiés. Les dépôts externes recommencent actuellement depuis le début. Les réservations incomplètes sont nettoyées après 24 heures d’inactivité. Le quota ne remplace pas la surveillance de l'espace disque réel.
 
-Le développement de Passelio n'altère pas l'instance Erugo existante. Le nom et la licence doivent être validés avant une publication publique.
+La publication du code ne déploie aucun serveur et ne rend publiques aucune installation, donnée utilisateur ou sauvegarde.
 
 
 ## Administration

@@ -1,6 +1,6 @@
 # Passelio — Project blueprint
 
-Status: a runnable private alpha (0.1.0-alpha.11) is available on codex/initial-alpha in pull request #1. No production release or full Erugo feature parity is available. See VALIDATION.md for completed checks and remaining limits.
+Status: public alpha 0.1.0-alpha.16, published for evaluation and contributions under AGPL-3.0-only. No production release, completed independent audit or full Erugo feature parity is available. See VALIDATION.md for completed checks and remaining limits.
 
 ## Purpose
 

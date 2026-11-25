@@ -4,7 +4,7 @@
 
 An independent, Docker-first file-sharing project with a French and English interface.
 
-**Status: private alpha, 0.1.0-alpha.16. Not production-ready.** Full Erugo feature parity is not yet reached. Licensed under AGPL-3.0-only. Versioned alpha container publication is configured for GitHub Container Registry; package access depends on repository/package visibility.
+**Status: public alpha, 0.1.0-alpha.16. Not production-ready.** Published for evaluation, feedback and contributions. Full Erugo feature parity is not yet reached. Licensed under AGPL-3.0-only. Versioned alpha containers are built for GitHub Container Registry; package visibility is configured separately from this repository.
 
 ## Implemented
 
@@ -70,8 +70,7 @@ Use the header language selector. The first visit uses the browser language; loc
 
 - One instance with one local SQLite database; do not deploy replicas or share SQLite over network filesystems.
 - A download limit counts each file request (including failed/interrupted client transfers after admission), not unique people or complete multi-file shares. HEAD requests do not count.
-- No upload resume in this alpha. Reloading or losing the connection requires retrying. The UI revokes a partially failed share when it can reach the server.
-- Files from an abruptly killed upload can retain reservations. Stop the services and inspect/recover them before restarting; automatic stale-upload recovery is a later milestone.
+- Authenticated uploads can resume by selecting the same files again; external upload requests currently restart from the beginning. Incomplete reservations are cleaned after 24 hours of inactivity.
 - Storage quota is logical file bytes, not a filesystem hard quota. Keep free space for the database, logs and backups. Uploads are refused if less than 64 MiB headroom would remain.
 - All users currently see global usage. Accounts can be disabled/re-enabled and roles changed; permanent user deletion and password recovery are not implemented yet.
 - Reverse-proxy deployments currently rate-limit by the direct peer IP. Forwarded client headers are intentionally not trusted; users may share a rate-limit bucket.
