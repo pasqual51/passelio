@@ -1,9 +1,9 @@
 # Essayer Passelio sur Unraid, sans déploiement Internet
 
-Ces fichiers sont préparés pour une **nouvelle installation de test**, séparée d’Erugo et de la prévisualisation locale. Aucune installation n’est lancée automatiquement. L’image alpha.14 analysée est figée par son empreinte :
+Ces fichiers sont préparés pour une **nouvelle installation de test**, séparée d’Erugo et de la prévisualisation locale. Aucune installation n’est lancée automatiquement. L’image alpha.15 analysée est figée par son empreinte :
 
 ```text
-ghcr.io/pasqual51/passelio@sha256:cbfae5c9266051f1b68a63c1de1144f7722b1803a84ad0976804d4fdf207c05d
+ghcr.io/pasqual51/passelio@sha256:a20c6244196a4332774c6fca6b886bb565ffd9be496fcab34c58f53600598526
 ```
 
 Deux conteneurs sont nécessaires : `passelio` pour le site et `passelio-worker` pour les emails, le nettoyage et les sauvegardes planifiées. Ils partagent les mêmes dossiers. Les modèles sont dans [deploy/unraid](../deploy/unraid/).
@@ -75,6 +75,8 @@ Pour arrêter l’essai, arrêter les deux conteneurs en conservant appdata. Ne 
 
 ## État de validation
 
-Les modèles XML, leurs chemins partagés et les options de protection ont été contrôlés dans le dépôt. Le script a été vérifié syntaxiquement. **Ces modèles n’ont pas encore été exécutés sur ton serveur Unraid**, conformément à ta demande de ne pas déployer. Les 82 tests et les vérifications du conteneur alpha.14 sont documentés dans le [rapport sécurité](security/HIGH-FINDINGS-TRIAGE-2026-11-19.md) ; ils ne remplacent pas ton essai sur Unraid.
+Les modèles ont été utilisés pour une installation privée sur Unraid le 25 novembre 2026. La sauvegarde complète, sa vérification, une restauration isolée et la migration alpha.13 vers alpha.14 avec retour arrière ont été testées. L’image alpha.15 ci-dessus a passé 84 tests, l’analyse de sécurité bloquante et trois séries de six initialisations concurrentes sur Unraid. Le serveur web et le worker ont été mis à jour ensemble après sauvegarde vérifiée. Voir les [notes alpha.15](RELEASE-alpha15.md).
+
+Ces contrôles portent sur un petit jeu de données local. Ils ne constituent pas un audit indépendant et ne valident pas les fournisseurs SMTP, S3/SFTP ou OIDC de chaque installation. Le [rapport sécurité alpha.14](security/HIGH-FINDINGS-TRIAGE-2026-11-19.md) reste un historique distinct.
 
 Références : [gestion des conteneurs Unraid](https://docs.unraid.net/unraid-os/using-unraid-to/run-docker-containers/managing-and-customizing-containers/), [authentification Docker](https://docs.docker.com/reference/cli/docker/login), [gestionnaire de modèles officiel Unraid](https://github.com/unraid/webgui/blob/master/emhttp/plugins/dynamix.docker.manager/include/CreateDocker.php).

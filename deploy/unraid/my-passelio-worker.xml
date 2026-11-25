@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Container version="2">
   <Name>passelio-worker</Name>
-  <Repository>ghcr.io/pasqual51/passelio@sha256:cbfae5c9266051f1b68a63c1de1144f7722b1803a84ad0976804d4fdf207c05d</Repository>
+  <Repository>ghcr.io/pasqual51/passelio@sha256:a20c6244196a4332774c6fca6b886bb565ffd9be496fcab34c58f53600598526</Repository>
   <Registry>https://github.com/pasqual51/passelio/pkgs/container/passelio</Registry>
   <Network>bridge</Network>
   <Privileged>false</Privileged>
   <Project>https://github.com/pasqual51/passelio</Project>
-  <Overview>Worker Passelio alpha.14 : emails, nettoyage et sauvegardes. Démarrer après le serveur web. Utiliser exactement la même image, les mêmes dossiers, la même adresse administrateur et la même URL que passelio. Aucun port publié.</Overview>
+  <Overview>Worker Passelio alpha.15 : emails, nettoyage et sauvegardes. Démarrer après le serveur web. Utiliser exactement la même image, les mêmes dossiers, la même adresse administrateur et la même URL que passelio. Aucun port publié.</Overview>
   <Category>Productivity:</Category>
   <WebUI/>
   <ExtraParams>--read-only --cap-drop=ALL --security-opt=no-new-privileges:true --tmpfs /tmp:rw,nosuid,noexec,size=16m,mode=1777 --memory=256m --pids-limit=64 --no-healthcheck --init</ExtraParams>
