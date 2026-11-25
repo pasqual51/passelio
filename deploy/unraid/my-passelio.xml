@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Container version="2">
   <Name>passelio</Name>
-  <Repository>ghcr.io/pasqual51/passelio@sha256:a20c6244196a4332774c6fca6b886bb565ffd9be496fcab34c58f53600598526</Repository>
+  <Repository>ghcr.io/pasqual51/passelio@sha256:5ad6f418db8bed898da0992e34a2a843c4f2bace5246821cf01956c6dab99d24</Repository>
   <Registry>https://github.com/pasqual51/passelio/pkgs/container/passelio</Registry>
   <Network>bridge</Network>
   <Privileged>false</Privileged>
   <Project>https://github.com/pasqual51/passelio</Project>
-  <Overview>Passelio alpha.15 — essai sur réseau privé. Préparer les dossiers et le secret avant installation. Renseigner l’URL LAN exacte et l’adresse administrateur. Installer aussi passelio-worker pour les emails, le nettoyage et les sauvegardes planifiées.</Overview>
+  <Overview>Passelio alpha.16 — essai sur réseau privé. Préparer les dossiers et le secret avant installation. Renseigner l’URL LAN exacte et l’adresse administrateur. Installer aussi passelio-worker pour les emails, le nettoyage et les sauvegardes planifiées.</Overview>
   <Category>Productivity:</Category>
   <WebUI>http://[IP]:[PORT:8080]/</WebUI>
   <ExtraParams>--read-only --cap-drop=ALL --security-opt=no-new-privileges:true --tmpfs /tmp:rw,nosuid,noexec,size=64m,mode=1777 --memory=512m --pids-limit=128 --init</ExtraParams>

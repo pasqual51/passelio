@@ -3,7 +3,7 @@
 set -eu
 if [ "$(id -u)" != 0 ]; then echo "Run from the Unraid root terminal." >&2; exit 1; fi
 PASSELIO_APPDATA=${PASSELIO_APPDATA:-/mnt/cache/appdata/passelio}
-IMAGE=ghcr.io/pasqual51/passelio@sha256:a20c6244196a4332774c6fca6b886bb565ffd9be496fcab34c58f53600598526
+IMAGE=ghcr.io/pasqual51/passelio@sha256:5ad6f418db8bed898da0992e34a2a843c4f2bace5246821cf01956c6dab99d24
 pool=${PASSELIO_APPDATA#/mnt/}
 pool=${pool%%/*}
 case "$pool" in ''|user|user0|*[!A-Za-z0-9_-]*) echo 'Choose a direct local Unraid pool path, not /mnt/user.' >&2; exit 1;; esac

@@ -1,9 +1,9 @@
 # Essayer Passelio sur Unraid, sans déploiement Internet
 
-Ces fichiers sont préparés pour une **nouvelle installation de test**, séparée d’Erugo et de la prévisualisation locale. Aucune installation n’est lancée automatiquement. L’image alpha.15 analysée est figée par son empreinte :
+Ces fichiers sont préparés pour une **nouvelle installation de test**, séparée d’Erugo et de la prévisualisation locale. Aucune installation n’est lancée automatiquement. L’image alpha.16 analysée est figée par son empreinte :
 
 ```text
-ghcr.io/pasqual51/passelio@sha256:a20c6244196a4332774c6fca6b886bb565ffd9be496fcab34c58f53600598526
+ghcr.io/pasqual51/passelio@sha256:5ad6f418db8bed898da0992e34a2a843c4f2bace5246821cf01956c6dab99d24
 ```
 
 Deux conteneurs sont nécessaires : `passelio` pour le site et `passelio-worker` pour les emails, le nettoyage et les sauvegardes planifiées. Ils partagent les mêmes dossiers. Les modèles sont dans [deploy/unraid](../deploy/unraid/).

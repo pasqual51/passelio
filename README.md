@@ -94,4 +94,4 @@ Local disk remains active unless explicitly changed. Choose and configure local,
 
 ## Private Unraid trial
 
-A French setup guide and two native Unraid templates are available in [docs/UNRAID.fr.md](docs/UNRAID.fr.md). They pin the validated alpha.15 digest and prepare a fresh private test installation; no deployment is performed automatically. Independent-review scope and evidence are collected in [the audit handoff](docs/security/INDEPENDENT-AUDIT-HANDOFF.md).
+A French setup guide and two native Unraid templates are available in [docs/UNRAID.fr.md](docs/UNRAID.fr.md). They pin the validated alpha.16 digest and prepare a fresh private test installation; no deployment is performed automatically. Independent-review scope and evidence are collected in [the audit handoff](docs/security/INDEPENDENT-AUDIT-HANDOFF.md).
