@@ -1,6 +1,10 @@
 import base64
 import hashlib
 import time
+import io
+from urllib.parse import urlsplit,parse_qs
+from PIL import Image
+import zxingcpp
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
@@ -11,6 +15,25 @@ from backup import create,restore
 from app import create_app
 
 PASSWORD='testing-password-only-123456'
+
+
+def test_setup_qr_decodes_to_exact_provisioning_uri(app):
+    c,h=login(app)
+    result=c.post('/api/me/mfa/setup',headers=h,json={'password':PASSWORD})
+    assert result.status_code==200
+    assert result.headers['Cache-Control']=='no-store'
+    data=result.json
+    assert data['qr_png'].startswith('data:image/png;base64,')
+    image=Image.open(io.BytesIO(base64.b64decode(data['qr_png'].split(',',1)[1])))
+    decoded=zxingcpp.read_barcode(image)
+    assert decoded is not None and decoded.text==data['uri']
+    uri=urlsplit(decoded.text);params=parse_qs(uri.query)
+    assert uri.scheme=='otpauth' and uri.netloc=='totp'
+    assert params['secret']==[data['secret']]
+    assert params['digits']==['6'] and params['period']==['30']
+    assert 'qr_png' not in c.get('/api/me/mfa').json
+    assert c.post('/api/me/mfa/setup',headers=h,json={'password':'wrong'}).status_code==401
+    assert app.test_client().post('/api/me/mfa/setup',json={'password':PASSWORD}).status_code==401
 
 
 def enroll(app):

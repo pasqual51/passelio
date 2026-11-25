@@ -3,6 +3,7 @@ import base64
 import hashlib
 import hmac
 import json
+import io
 import os
 import secrets
 import struct
@@ -12,6 +13,7 @@ from urllib.parse import quote, urlencode
 
 from flask import g, jsonify, request
 from werkzeug.security import check_password_hash
+import qrcode
 
 
 def totp(secret, step, digits=6):
@@ -107,7 +109,12 @@ def init_mfa(app,db,root,protected,fail,audit,rate_limit):
         if old:(folder/old).unlink(missing_ok=True)
         issuer=app.system_settings()['application_name']
         uri='otpauth://totp/'+quote(issuer+':'+g.user['email'],safe='')+'?'+urlencode(dict(secret=secret,issuer=issuer,algorithm='SHA1',digits=6,period=30))
-        return jsonify(secret=secret,uri=uri,expires_in=600)
+        # Generate locally. Never disclose provisioning secrets to a QR service.
+        qr=qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M,box_size=6,border=4)
+        qr.add_data(uri);qr.make(fit=True)
+        image=io.BytesIO();qr.make_image(fill_color='black',back_color='white').save(image,format='PNG')
+        return jsonify(secret=secret,uri=uri,expires_in=600,
+                       qr_png='data:image/png;base64,'+base64.b64encode(image.getvalue()).decode('ascii'))
 
     @app.post('/api/me/mfa/enable')
     @protected()
