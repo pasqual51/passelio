@@ -8,15 +8,15 @@ ghcr.io/pasqual51/passelio@sha256:5ad6f418db8bed898da0992e34a2a843c4f2bace524682
 
 Deux conteneurs sont nécessaires : `passelio` pour le site et `passelio-worker` pour les emails, le nettoyage et les sauvegardes planifiées. Ils partagent les mêmes dossiers. Les modèles sont dans [deploy/unraid](../deploy/unraid/).
 
-## 1. Accès à l’image privée
+## 1. Accès à l’image publique
 
 Dans le terminal Unraid, quand tu seras prêt :
 
 ```sh
-docker login ghcr.io -u pasqual51
+docker pull ghcr.io/pasqual51/passelio:0.1.0-alpha.16
 ```
 
-À l’invite du mot de passe, utiliser un jeton GitHub autorisé à lire le paquet privé, avec `read:packages`. Ne pas utiliser le mot de passe du compte GitHub, ni mettre le jeton dans une commande, un modèle XML ou le dépôt. L’authentification est gérée par Docker sur ton serveur.
+L’image est publique : aucun compte GitHub, `docker login` ou jeton n’est nécessaire. Les modèles Unraid utilisent une empreinte figée ; cette référence est également téléchargeable sans connexion.
 
 ## 2. Préparer un espace de test neuf
 

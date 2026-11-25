@@ -6,6 +6,30 @@ An independent, Docker-first file-sharing project with a French and English inte
 
 **Status: public alpha, 0.1.0-alpha.16. Not production-ready.** Published for evaluation, feedback and contributions. Full Erugo feature parity is not yet reached. Licensed under AGPL-3.0-only. Versioned alpha containers are built for GitHub Container Registry; package visibility is configured separately from this repository.
 
+## Try the public Docker image
+
+No GitHub account, registry login or personal access token is required:
+
+```sh
+docker pull ghcr.io/pasqual51/passelio:0.1.0-alpha.16
+```
+
+Clone this repository, copy `.env.example` to `.env`, set `ADMIN_EMAIL`, and create
+`secrets/admin_password.txt` containing a random password of at least 14 characters.
+On Linux, protect the host `secrets` directory with mode 700 and make the mounted
+password file readable by container UID 10001 (for example mode 444 inside that
+protected directory). Then start both services using the prebuilt image:
+
+```sh
+docker compose -f compose.image.yml up -d --pull always
+```
+
+Open <http://localhost:8080>. The default port is bound to loopback only. Configure
+HTTPS before exposing the service beyond your trusted network. `compose.yml`
+remains available for building the application from source.
+See the [Unraid instructions](docs/UNRAID.fr.md) and
+[deployment guide](docs/DEPLOYMENT.md).
+
 ## Implemented
 
 - Responsive interface and original SVG logo; French/English switching and saved preferences.

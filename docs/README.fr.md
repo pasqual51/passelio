@@ -10,6 +10,11 @@ Connexion et déconnexion, ajout d'utilisateurs par l'administrateur, changement
 
 ## Installation locale
 
+L’image Docker est publique et ne nécessite aucun jeton GitHub. Pour utiliser
+l’image précompilée après avoir préparé `.env` et le mot de passe initial,
+exécuter `docker compose -f compose.image.yml up -d --pull always`.
+Les instructions ci-dessous permettent également de construire depuis les sources.
+
 1. Copier `.env.example` vers `.env` et définir `ADMIN_EMAIL`.
 2. Créer `secrets/admin_password.txt` avec un mot de passe aléatoire d'au moins 14 caractères. Sous Linux : dossier `secrets` en mode 700 et fichier en mode 444, afin que le secret monté en lecture seule reste lisible par l'UID 10001 du conteneur, sans accès des autres utilisateurs au dossier hôte. Sous Windows, protéger le dossier par ACL et vérifier la lisibilité du secret dans Docker. Ne jamais publier ce fichier.
 3. Exécuter `docker compose build`, puis `docker compose up -d`.
