@@ -31,6 +31,29 @@ remains available for building the application from source.
 See the [Unraid instructions](docs/UNRAID.fr.md) and
 [deployment guide](docs/DEPLOYMENT.md).
 
+## Screenshots
+
+These screenshots use a separate demonstration with fictional accounts and files.
+The interface is shown in French; English is also available.
+
+**Sharing workspace**
+
+![Passelio sharing workspace with fictional example shares](docs/images/sharing-fr.jpg)
+
+<details>
+<summary>Administration overview</summary>
+
+![Passelio administration overview with synthetic users and files](docs/images/admin-fr.jpg)
+
+</details>
+
+<details>
+<summary>Branding and theme settings</summary>
+
+![Passelio branding and Ocean theme settings](docs/images/branding-fr.jpg)
+
+</details>
+
 ## Implemented
 
 - Responsive interface and original SVG logo; French/English switching and saved preferences.

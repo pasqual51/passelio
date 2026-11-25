@@ -1,6 +1,6 @@
 # Functional reference and implementation tracker
 
-The owner supplied reference screenshots of a self-hosted sharing application on 17 November 2026. They describe desired capabilities, not an instruction to copy branding, third-party assets, corporate data or source code. Passelio retains its own identity and implementation. No screenshots, personal account lists or company assets are published in this repository.
+The owner supplied reference screenshots of a self-hosted sharing application on 17 November 2026. They describe desired capabilities, not an instruction to copy branding, third-party assets, corporate data or source code. Passelio retains its own identity and implementation. No third-party reference screenshots, real account lists or company assets are published in this repository. Public Passelio screenshots use a separate demonstration with fictional data.
 
 | Area | Implemented in Passelio | Remaining work |
 | --- | --- | --- |

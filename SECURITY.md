@@ -1,6 +1,6 @@
 # Security status
 
-Passelio is an early private alpha. It has not received an independent security audit. Do not use it for regulated, confidential or production data yet.
+Passelio is an early public alpha. It has not received an independent security audit. Do not use it for regulated, confidential or production data yet.
 
 Current controls include scrypt password hashing, random share tokens, hashed server-side session tokens, same-site HTTP-only cookies, CSRF checks, security headers, download-as-attachment, opaque storage paths and transactional quota reservation. These are implementation controls, not a certification or guarantee.
 

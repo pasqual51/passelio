@@ -1,0 +1,25 @@
+Passelio — self-hosted file sharing, in English and French
+
+I’m building Passelio, an open-source file-sharing application that runs with Docker on your own server.
+
+This first public alpha includes:
+- expiring share links, optional passwords and download limits;
+- email link delivery and upload requests;
+- an English and French interface;
+- user administration and storage quotas;
+- TOTP two-factor authentication;
+- local, S3-compatible or SFTP file storage;
+- custom branding, colours and theme presets.
+
+The Docker image is public: no GitHub account or personal access token is needed to download it.
+
+I’m looking for early testers, especially Docker and Unraid users, to help improve installation, usability and reliability. Feedback and bug reports are welcome in GitHub issues. Please remove personal information and secrets from logs or screenshots before sharing them.
+
+This is experimental software, not a production release. An independent security audit has not yet been completed. Please use test data. Antivirus scanning and end-to-end encryption are not available.
+
+Source and installation: https://github.com/pasqual51/passelio
+Release: https://github.com/pasqual51/passelio/releases/tag/v0.1.0-alpha.16
+Feedback and bugs: https://github.com/pasqual51/passelio/issues
+License: AGPL-3.0-only
+
+#OpenSource #SelfHosted #Docker #Unraid

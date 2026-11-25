@@ -8,6 +8,14 @@ Passelio est une application indépendante de partage de fichiers, avec une inte
 
 Connexion et déconnexion, ajout d'utilisateurs par l'administrateur, changement de mot de passe, envoi de plusieurs fichiers, liens temporaires, protection par mot de passe, révocation, limites de téléchargements et quotas globaux. Les fichiers ont une empreinte SHA-256. Un processus nettoie les fichiers expirés ou révoqués toutes les cinq minutes.
 
+## Captures de démonstration
+
+Les comptes et fichiers présentés sont fictifs, dans une démonstration séparée.
+
+- [Espace de partage](images/sharing-fr.jpg)
+- [Tableau de bord administratif](images/admin-fr.jpg)
+- [Personnalisation et thèmes](images/branding-fr.jpg)
+
 ## Installation locale
 
 L’image Docker est publique et ne nécessite aucun jeton GitHub. Pour utiliser
