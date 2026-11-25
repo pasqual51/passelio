@@ -32,6 +32,21 @@ from blobstore import init_storage, StorageUnavailable
 
 
 def create_app(config=None):
+    # Gunicorn workers and the queue worker may start against a fresh volume
+    # together. Serialize the complete schema/bootstrap sequence, including all
+    # extension migrations, using a separate SQLite connection across processes.
+    root = Path((config or {}).get('DATA_DIR', os.getenv('DATA_DIR', './data'))).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    lock = sqlite3.connect(root / '.initialization.sqlite', timeout=120)
+    try:
+        lock.execute('BEGIN IMMEDIATE')
+        return _create_app(config)
+    finally:
+        lock.rollback()
+        lock.close()
+
+
+def _create_app(config=None):
     app = Flask(__name__, static_folder="static")
     # Keep frontend files paired with the running backend until the next restart.
     # Development edits must not expose new API calls to an older process.
@@ -232,7 +247,7 @@ def create_app(config=None):
 
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", version="0.1.0-alpha.14")
+        return jsonify(status="ok", version="0.1.0-alpha.15")
 
     @app.get('/api/config')
     def public_config():
@@ -527,7 +542,7 @@ def create_app(config=None):
                         files=c.execute('SELECT count(*) FROM files WHERE ready=1').fetchone()[0],
                         used=c.execute('SELECT coalesce(sum(size),0) FROM files').fetchone()[0],
                         cleanup_bytes=c.execute('SELECT coalesce(sum(size),0) FROM files JOIN shares ON shares.id=files.share_id WHERE revoked=1 OR expires<=?',(time.time(),)).fetchone()[0],
-                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.14')
+                        limits=current_limits(c),disk_free=shutil.disk_usage(root).free,version='0.1.0-alpha.15')
         return jsonify(result)
 
     @app.get('/api/admin/users')

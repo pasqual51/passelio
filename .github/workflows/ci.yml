@@ -41,7 +41,7 @@ jobs:
           REGISTRY_USER: ${{ github.actor }}
         run: echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
       - name: Build versioned alpha image
-        run: docker build --pull --label org.opencontainers.image.source=https://github.com/pasqual51/passelio --label org.opencontainers.image.licenses=AGPL-3.0-only --label org.opencontainers.image.revision=${{ github.sha }} -t ghcr.io/pasqual51/passelio:0.1.0-alpha.14 -t ghcr.io/pasqual51/passelio:sha-${{ github.sha }} .
+        run: docker build --pull --label org.opencontainers.image.source=https://github.com/pasqual51/passelio --label org.opencontainers.image.licenses=AGPL-3.0-only --label org.opencontainers.image.revision=${{ github.sha }} -t ghcr.io/pasqual51/passelio:0.1.0-alpha.15 -t ghcr.io/pasqual51/passelio:sha-${{ github.sha }} .
       - name: Scan candidate before publication
         run: bash .github/scripts/scan-image.sh ghcr.io/pasqual51/passelio:sha-${{ github.sha }} image-security-reports
       - name: Verify patched runtime without root or network
@@ -57,5 +57,5 @@ jobs:
           retention-days: 30
       - name: Publish alpha image
         run: |
-          docker push ghcr.io/pasqual51/passelio:0.1.0-alpha.14
+          docker push ghcr.io/pasqual51/passelio:0.1.0-alpha.15
           docker push ghcr.io/pasqual51/passelio:sha-${{ github.sha }}
