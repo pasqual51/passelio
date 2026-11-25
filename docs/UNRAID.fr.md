@@ -3,7 +3,7 @@
 Ces fichiers sont préparés pour une **nouvelle installation de test**, séparée d’Erugo et de la prévisualisation locale. Aucune installation n’est lancée automatiquement. L’image alpha.16 analysée est figée par son empreinte :
 
 ```text
-ghcr.io/pasqual51/passelio@sha256:5ad6f418db8bed898da0992e34a2a843c4f2bace5246821cf01956c6dab99d24
+ghcr.io/pasqual51/passelio@sha256:b5f682f3cb375cd254b88715c2b20dac27d84577ed65318ef0026ac61d0df2f0
 ```
 
 Deux conteneurs sont nécessaires : `passelio` pour le site et `passelio-worker` pour les emails, le nettoyage et les sauvegardes planifiées. Ils partagent les mêmes dossiers. Les modèles sont dans [deploy/unraid](../deploy/unraid/).

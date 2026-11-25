@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Container version="2">
   <Name>passelio</Name>
-  <Repository>ghcr.io/pasqual51/passelio@sha256:5ad6f418db8bed898da0992e34a2a843c4f2bace5246821cf01956c6dab99d24</Repository>
+  <Repository>ghcr.io/pasqual51/passelio@sha256:b5f682f3cb375cd254b88715c2b20dac27d84577ed65318ef0026ac61d0df2f0</Repository>
   <Registry>https://github.com/pasqual51/passelio/pkgs/container/passelio</Registry>
   <Network>bridge</Network>
   <Privileged>false</Privileged>

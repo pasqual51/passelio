@@ -8,7 +8,8 @@ An independent, Docker-first file-sharing project with a French and English inte
 
 ## Try the public Docker image
 
-No GitHub account, registry login or personal access token is required:
+Docker Engine and Docker Compose are required. No GitHub account, registry login
+or personal access token is required:
 
 ```sh
 docker pull ghcr.io/pasqual51/passelio:0.1.0-alpha.16
